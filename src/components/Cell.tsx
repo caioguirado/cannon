@@ -8,6 +8,7 @@ type CellProps = {
     id: string;
     content: string;
     position?: string;
+    cname?: string;
 };
 
 export const Cell = (props: CellProps) => {
@@ -20,9 +21,10 @@ export const Cell = (props: CellProps) => {
 
     // const color = getCellColor(parseInt(props.id));
     const color = '#f9dfa4';
+    console.log(props.cname);
     return (
         <div 
-            className='cell' 
+            className={props.cname ? props.cname : 'cell' }
             ref={drop} 
             style={{backgroundColor: color}}>
                 {/* <DragPreviewImage connect={dragPreview} src={img.default}/> */}

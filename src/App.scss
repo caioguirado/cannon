@@ -119,6 +119,39 @@ $boardSize: 35vw;
   border-style: solid;
 }
 
+.pieceBoard {
+  width: 95%;
+  height: 95%;
+  top: 50%;
+  position: absolute;
+  display: flex;
+  flex-wrap: wrap;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.outerCell {
+  flex: 1 0 9%;
+  text-align: center;
+  position: relative;
+  border-style: solid;
+  border-width: 1px;
+  border-color: blue;
+  background-color: rgb(0, 255, 0, 0.3) !important;
+
+  & > div {
+    height: 100%;
+  }
+
+  & img {
+    width: 70%;
+    bottom: 0;
+    position: absolute;
+    right: 0;
+    transform: translate(-25%, -25%);
+  }
+}
+
 .cell {
   //   width: 12.5%;
   //   height: 12.5%;
