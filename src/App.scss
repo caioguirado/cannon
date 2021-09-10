@@ -1,0 +1,148 @@
+$boardSize: 35vw;
+
+* {
+  margin: 0;
+  padding: 0;
+  color: red;
+}
+
+.gameArea {
+  padding: 10%;
+}
+
+.container {
+  width: $boardSize;
+  height: $boardSize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  //   border-color: black;
+  //   border-style: dashed;
+  margin: auto;
+}
+
+.outerBoard {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  border-color: black;
+  border-width: 3px;
+  border-style: solid;
+}
+
+.sideBar {
+  height: 100%;
+  width: 5%;
+  //   border-style: solid;
+  //   border-color: blue;
+  position: absolute;
+  display: flex;
+  flex-flow: row wrap;
+  align-content: center;
+
+  & .sideBarPad {
+    // border-style: solid;
+    // border-color: blue;
+    height: 7.5%;
+    width: 100%;
+    position: relative;
+
+    & span {
+      bottom: -20px;
+      position: absolute;
+      margin-left: 15%;
+    }
+  }
+
+  & .sideBarNotation {
+    // border-style: solid;
+    // border-color: blue;
+    height: 9.4%;
+    width: 100%;
+    position: relative;
+
+    & span {
+      bottom: -20%;
+      position: absolute;
+      margin-left: 15%;
+    }
+  }
+}
+
+.topBar {
+  height: 5%;
+  width: 100%;
+  //   border-style: solid;
+  //   border-color: blue;
+  //   position: absolute;
+  display: flex;
+  //   flex-flow: column wrap;
+
+  & .topBarPad {
+    // border-style: solid;
+    // border-color: blue;
+    height: 100%;
+    width: 7.5%;
+
+    & span {
+      right: 0;
+      margin-top: 15%;
+    }
+  }
+
+  & .topBarNotation {
+    // border-style: solid;
+    // border-color: blue;
+    height: 100%;
+    width: 9.4%;
+
+    & span {
+      right: 0;
+      margin-top: 15%;
+    }
+  }
+}
+
+.board {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 85%;
+  height: 85%;
+  display: flex;
+  flex-wrap: wrap;
+  border-color: black;
+  border-width: 3px;
+  border-style: solid;
+}
+
+.cell {
+  //   width: 12.5%;
+  //   height: 12.5%;
+  //   border-color: blue;
+  //   border-style: dashed;
+  flex: 1 0 10%;
+  text-align: center;
+  position: relative;
+  border-style: solid;
+  border-width: 1px;
+  border-color: black;
+
+  &:hover {
+    cursor: grab;
+  }
+
+  & > div {
+    height: 100%;
+  }
+
+  & img {
+    width: 70%;
+    left: 0;
+    position: absolute;
+    transform: translate(-50%, -50%);
+  }
+}
