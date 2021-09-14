@@ -30,7 +30,7 @@ export const Cell = (props: CellProps) => {
                 {/* <DragPreviewImage connect={dragPreview} src={img.default}/> */}
                 {/* <div id={props.id} style={{opacity: collected.isDragging ? 0 : 1}} ref={drag} {...collected} className=''>{props.piece}</div> */}
                 {
-                    props.content === 'p' ?
+                    props.content !== 'none' ?
                         <Piece id={props.id} value={props.content}/> : null
                 }
         </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import {useDrag} from 'react-dnd';
 import whitePieceSVG from '../assets/whitePiece.svg';
+import blackPieceSVG from '../assets/blackPiece.svg';
 
 type PieceProps = {
     id: string;
@@ -16,6 +17,7 @@ export const Piece = (props: PieceProps) => {
     }));
 
     // const img = require('../assets/piece.svg');
+    const pieceType = props.value === 'w' ? whitePieceSVG : blackPieceSVG;
 
     return (
         <div 
@@ -24,7 +26,7 @@ export const Piece = (props: PieceProps) => {
             {...collected}
             className=''>                
                 {/* {props.value} */}
-                <img src={whitePieceSVG} ref={drag}  alt='piece'/>
+                <img src={pieceType} ref={drag}  alt='piece'/>
         </div>
     )
 };

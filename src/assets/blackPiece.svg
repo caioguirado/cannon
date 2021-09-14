@@ -1,0 +1,18 @@
+
+<svg width="119px" height="119px" viewBox="0 0 119 119" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="SVG-Layer" transform="translate(59.500000, 59.500000) rotate(-180.000000) translate(-59.500000, -59.500000) translate(0.500000, 0.500000)" stroke="#979797">
+            <g id="Page-1" transform="translate(0.500000, 0.500000)">
+                <g id="Group-2">
+                    <circle id="Oval" fill="#1F1E1E" cx="58.5" cy="58.5" r="58.5"></circle>
+                    <g id="Group" transform="translate(38.376000, 14.976000)" fill="#D8D8D8">
+                        <path d="M5.6215314,70.4214962 L5.616,70.4214962 L5.62265162,70.3911661 C5.66410223,69.3184394 5.8983847,68.2821337 6.3002998,67.3012283 L21.06,0 L35.8196991,67.3012233 C36.2216153,68.2821337 36.4558977,69.3184394 36.4973484,70.3911661 L36.504,70.4214962 L36.4984686,70.4214962 C36.5021485,70.5259527 36.504,70.6307524 36.504,70.7358779 C36.504,77.1601216 29.5894857,82.368 21.06,82.368 C12.5305143,82.368 5.616,77.1601216 5.616,70.7358779 C5.616,70.6307524 5.61785154,70.5259527 5.6215314,70.4214962 Z" id="Combined-Shape"></path>
+                        <rect id="Rectangle" x="11.7" y="0.468" width="18.72" height="23.4" rx="8"></rect>
+                        <rect id="Rectangle" x="36.972" y="59.436" width="3.744" height="28.08" rx="1.872"></rect>
+                        <rect id="Rectangle" x="0.468" y="59.436" width="3.744" height="28.08" rx="1.872"></rect>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>
