@@ -24,7 +24,16 @@ const reducer = produce(
     (state: BoardState | undefined = initialState, action: Action): BoardState  => {
         switch (action.type){
             case ActionType.MOVE_CELL:
-                state.testInt += 1;
+
+                // Find index of FROM and empty its value
+                const fromIndex = state.boardConfig.findIndex(cell => cell.id === action.payload.from);
+                state.boardConfig[fromIndex].value = 'none';
+                
+                // Find index of TO and change its value
+                const toIndex = state.boardConfig.findIndex(cell => cell.id === action.payload.to);
+                console.log(state.boardConfig[toIndex].value, action.payload.value);
+                state.boardConfig[toIndex].value = action.payload.value;
+
                 return state;
 
             case ActionType.DRAG_CELL:

@@ -15,7 +15,7 @@ export const Piece = (props: PieceProps) => {
 
     const [collected, drag, dragPreview]: [any, any, any] = useDrag(() => ({
         type: 'piece',
-        item: { id: props.id },
+        item: { ...props },
         collect: (monitor) => { 
             return {isDragging: monitor.isDragging()} 
         }

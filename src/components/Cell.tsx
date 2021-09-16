@@ -25,10 +25,15 @@ export const Cell = (props: CellProps) => {
     const [collectedProps, drop] = useDrop({
         accept: 'piece',
         drop: (item: any) => {
-            console.log(item, props.position);
-            moveCell('e5', 'a1');
+            console.log(item, props);
+            
+            // Check if move is allowed
+
+            // If so change board state
+            
+            moveCell(item.id, props.id, item.value);
             deSelectCell();
-        } // execute move
+        }
     });
 
     const color = '#f9dfa4';

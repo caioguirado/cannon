@@ -5,7 +5,8 @@ export interface MoveCellAction {
     type: ActionType.MOVE_CELL,
     payload: {
         from: string,
-        to: string
+        to: string,
+        value: string
     }
 };
 
