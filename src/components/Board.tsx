@@ -2,22 +2,30 @@ import React from 'react';
 import {Cell} from './Cell';
 import {Piece} from './Piece';
 import {useDrop} from 'react-dnd';
+import { RootState } from '../state';
+import {useSelector} from 'react-redux';
+import {BoardCell} from '../boardCells';
 import {indexToNotation} from '../gameUtils';
 import {LateralMarks} from './LateralMarks';
+import { useTypedSelector } from '../hooks/use-typed-selector';
 
-type BoardProps = {
-    nCells: number;
-    pieces: React.ComponentProps<typeof Piece>[];
-    boardCells: React.ComponentProps<typeof Piece>[];
-};
 
-export const Board = (props: BoardProps) => {
+export const Board = () => {
+
+    const {boardConfig, boardCells} = useTypedSelector(({board: {boardConfig, boardCells}}) => {
+        return {boardConfig, boardCells}
+    });
+    // const {boardConfig, boardCells} = useSelector((state: RootState) => {
+    //     const {board: {boardConfig, boardCells}} = state;
+    //     return {boardConfig, boardCells};
+    // });
+    
     return (
             <div id='outerBoard' className='outerBoard'>
                 <LateralMarks/>
                 <div id='board' className='board'>
                     {
-                        props.boardCells.map((piece, index) => {
+                        boardCells.map((piece: any, index: any) => {
                             return <Cell 
                                         id={index.toString()} 
                                         key={index} 
@@ -30,7 +38,7 @@ export const Board = (props: BoardProps) => {
                 </div>
                 <div className="pieceBoard">
                 {
-                        props.pieces.map((piece, index) => {
+                        boardConfig.map((piece: any, index: any) => {
                             return <Cell 
                                         id={index.toString()} 
                                         cname='outerCell'

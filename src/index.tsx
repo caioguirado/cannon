@@ -1,6 +1,8 @@
 import {boardCells} from './boardCells';
 import {boardConfig} from './boardConfig';
 import ReactDOM from 'react-dom';
+import { Provider } from 'react-redux';
+import {store} from './state';
 import {DndProvider} from 'react-dnd';
 import {Board} from './components/Board';
 import {Container} from './components/Container';
@@ -10,13 +12,15 @@ import './App.scss';
 import { GameArea } from './components/GameArea';
 
 const App = () => {
-    return  <GameArea>
-                <Container>
-                    <DndProvider backend={HTML5Backend}> 
-                        <Board nCells={20} pieces={boardConfig} boardCells={boardCells}/>
-                    </DndProvider>
-                </Container>
-            </GameArea>
+    return  <Provider store={store}>
+                <GameArea>
+                    <Container>
+                        <DndProvider backend={HTML5Backend}> 
+                            <Board/>
+                        </DndProvider>
+                    </Container>
+                </GameArea>
+            </Provider>
 }
 
 ReactDOM.render(<App />, document.getElementById('root'));

@@ -1,3 +1,8 @@
+export type BoardCell = {
+    id: string;
+    value: string;
+};
+
 export const boardCells = [{id: '1', value: 'p'},
                         {id: '2', value: 'p'},
                         {id: '3', value: 'p'},
