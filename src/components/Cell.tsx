@@ -29,6 +29,9 @@ export const Cell = (props: CellProps) => {
             
             // Check if move is allowed
             // const isMoveAllowed = checkMove(item, props, boardConfig);
+            if (!allowedPositions.includes(parseInt(props.id))){
+                return
+            }
             // If so change board state
             
             moveCell(item.id, props.id, item.value);
