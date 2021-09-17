@@ -15,7 +15,7 @@ export const Piece = (props: PieceProps) => {
 
     const [collected, drag, dragPreview]: [any, any, any] = useDrag(() => ({
         type: 'piece',
-        item: { ...props },
+        item: () => {return { ...props }},
         collect: (monitor) => { 
             return {isDragging: monitor.isDragging()} 
         }
@@ -23,8 +23,8 @@ export const Piece = (props: PieceProps) => {
 
     const pieceType = props.value === 'w' ? whitePieceSVG : blackPieceSVG;
 
-    const selectPiece = () => {
-        dragCell();
+    const selectPiece = (item: any) => {
+        dragCell(item);
     };
 
     const deSelectPiece = () => {
@@ -39,7 +39,8 @@ export const Piece = (props: PieceProps) => {
             className=''
             // onMouseDown={selectPiece}
             // onMouseUp={deSelectPiece}
-            onDragStart={selectPiece}
+            onDragStart={() => selectPiece(props)}
+            data-val={props.value}
         >                
                 <img src={pieceType} ref={drag}  alt='piece'/>
         </div>

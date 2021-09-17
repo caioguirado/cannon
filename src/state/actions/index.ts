@@ -12,7 +12,9 @@ export interface MoveCellAction {
 
 export interface DragCellAction {
     type: ActionType.DRAG_CELL,
-    payload: {}
+    payload: {
+        item: BoardCell;
+    }
 };
 
 export interface DeSelectCellAction {

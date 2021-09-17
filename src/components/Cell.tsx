@@ -18,8 +18,8 @@ export const Cell = (props: CellProps) => {
 
     const {moveCell, deSelectCell} = useActions();
 
-    const {isDragging} = useTypedSelector(({board: {isDragging}}) => {
-        return {isDragging}
+    const {isDragging, boardConfig, allowedPositions} = useTypedSelector(({board: {isDragging, boardConfig, allowedPositions}}) => {
+        return {isDragging, boardConfig, allowedPositions}
     });
 
     const [collectedProps, drop] = useDrop({
@@ -28,29 +28,28 @@ export const Cell = (props: CellProps) => {
             console.log(item, props);
             
             // Check if move is allowed
-
+            // const isMoveAllowed = checkMove(item, props, boardConfig);
             // If so change board state
             
             moveCell(item.id, props.id, item.value);
             deSelectCell();
         }
     });
-
+    // console.log(parseInt(props.id), allowedPositions, parseInt(props.id) in allowedPositions);
     const color = '#f9dfa4';
     return (
         <div 
             className={props.cname ? props.cname : 'cell' }
-            ref={drop} 
-            style={{backgroundColor: color}}>
-
-                {/* <DragPreviewImage connect={dragPreview} src={img.default}/> */}
-                {/* <div id={props.id} style={{opacity: collected.isDragging ? 0 : 1}} ref={drag} {...collected} className=''>{props.piece}</div> */}
+            ref={drop}
+            style={{backgroundColor: color}}
+            data-val={props.content}
+        >
                 {
                     props.content !== 'none' ?
                         <Piece id={props.id} value={props.content}/> : null
                 }
                 {
-                    props.cname === 'outerCell' && isDragging ? 
+                    props.cname === 'outerCell' && isDragging && allowedPositions.includes(parseInt(props.id)) ? 
                         <img className='point' src={pointSVG} alt='point'/> : null
                 }
                 

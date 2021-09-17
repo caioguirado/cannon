@@ -15,11 +15,7 @@ export const Board = () => {
     const {boardConfig, boardCells} = useTypedSelector(({board: {boardConfig, boardCells}}) => {
         return {boardConfig, boardCells}
     });
-    // const {boardConfig, boardCells} = useSelector((state: RootState) => {
-    //     const {board: {boardConfig, boardCells}} = state;
-    //     return {boardConfig, boardCells};
-    // });
-    
+
     return (
             <div id='outerBoard' className='outerBoard'>
                 <LateralMarks/>
@@ -28,8 +24,7 @@ export const Board = () => {
                         boardCells.map((piece: any, index: any) => {
                             return <Cell 
                                         id={index.toString()} 
-                                        key={index} 
-                                        // content={piece.value}
+                                        key={index}
                                         content='none'
                                         position={indexToNotation(index)}
                                     />
@@ -44,7 +39,6 @@ export const Board = () => {
                                         cname='outerCell'
                                         key={index} 
                                         content={piece.value}
-                                        // content='none'
                                         position={indexToNotation(index)}
                                     />
                         })

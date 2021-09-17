@@ -12,10 +12,12 @@ export const moveCell = (from: string, to: string, value: string) => {
     }
 };
 
-export const dragCell = () => {
+export const dragCell = (item: any) => {
     return {
         type: ActionType.DRAG_CELL,
-        payload: {}
+        payload: {
+            item
+        }
     }
 };
 
