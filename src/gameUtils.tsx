@@ -27,8 +27,12 @@ export const getCellColor = (index: number) => {
 export const getStepCells = (item: any) => {
     const fromItem = parseInt(item.id);
     if (item.value === 'w'){
+        if (fromItem % 10 === 0) {return [fromItem - 10, fromItem - 9]} // First in row
+        if ((fromItem + 1) % 10 === 0) {return [fromItem - 11, fromItem - 10]} // Last in row
         return [fromItem - 11, fromItem - 10, fromItem - 9]
     } else {
+        if (fromItem % 10 === 0) {return [fromItem + 10, fromItem + 11]} // First in row
+        if ((fromItem + 1) % 10 === 0) {return [fromItem + 9, fromItem + 10]} // Last in row
         return [fromItem + 9, fromItem + 10, fromItem + 11]
     }
 };
