@@ -26,16 +26,19 @@ export const getCellColor = (index: number) => {
 
 // };
 
-export const getStepCells = (item: any) => {
+export const getStepCells = (item: any, backwards: boolean = false, double: boolean = false) => {
+    const depth = double ? 2 : 1;
+    const correction = (depth - 1) * 4;
+    const reverse = backwards ? -1 * depth : 1;
     const fromItem = parseInt(item.id);
     if (item.value === 'w'){
-        if (fromItem % 10 === 0) {return [fromItem - 10, fromItem - 9]} // First in row
-        if ((fromItem + 1) % 10 === 0) {return [fromItem - 11, fromItem - 10]} // Last in row
-        return [fromItem - 11, fromItem - 10, fromItem - 9]
+        if (fromItem % 10 === 0) {return [fromItem - (10 * reverse), fromItem - (9 * reverse - correction)]} // First in row
+        if ((fromItem + 1) % 10 === 0) {return [fromItem - (11 * reverse + correction), fromItem - (10 * reverse)]} // Last in row
+        return [fromItem - (11 * reverse + correction), fromItem - (10 * reverse), fromItem - (9 * reverse - correction)]
     } else {
-        if (fromItem % 10 === 0) {return [fromItem + 10, fromItem + 11]} // First in row
-        if ((fromItem + 1) % 10 === 0) {return [fromItem + 9, fromItem + 10]} // Last in row
-        return [fromItem + 9, fromItem + 10, fromItem + 11]
+        if (fromItem % 10 === 0) {return [fromItem + (10 * reverse), fromItem + (11 * reverse + correction)]} // First in row
+        if ((fromItem + (1 * reverse)) % 10 === 0) {return [fromItem + (9 * reverse - correction), fromItem + (10 * reverse)]} // Last in row
+        return [fromItem + (9 * reverse - correction), fromItem + (10 * reverse), fromItem + (11 * reverse + correction)]
     }
 };
 
@@ -44,11 +47,11 @@ export const checkSideCell = (item: BoardCell, boardConfig: BoardCell[], side: s
     const opponent: {[key: string]: string} = {'w': 'b', 'b': 'w'};
     const cellSide: {[key: string]: number} = {left: -1, right: +1};
     const sideItem = fromItem + cellSide[side];
-    console.log(boardConfig, sideItem)
+
     return boardConfig[sideItem].value === opponent[item.value] ? [sideItem] : []
 };
 
-export const getOccupiedAdjCells = (item: BoardCell, boardConfig: BoardCell[]) => {
+export const getOccupiedSideCells = (item: BoardCell, boardConfig: BoardCell[]) => {
     const fromItem = parseInt(item.id);
     const allowedCells: number[] = [];
 
@@ -70,6 +73,49 @@ export const getOccupiedAdjCells = (item: BoardCell, boardConfig: BoardCell[]) =
     }
 };
 
+export const getOccupiedStepCells = (
+    item: BoardCell, 
+    boardConfig: BoardCell[], 
+    backwards: boolean = false,
+    double: boolean = false,
+    byOpponent: boolean = false
+) => {
+    const opponent: {[key: string]: string} = {'w': 'b', 'b': 'w'};
+    const occupiedStepCells = getStepCells(item, backwards, double).filter(stepCell => {
+        if (byOpponent){
+            if (boardConfig[stepCell].value === opponent[item.value]){
+                return stepCell
+            }
+        } else {
+            if (boardConfig[stepCell].value !== 'none'){
+                return stepCell
+            }
+        }}
+    );
+
+    return occupiedStepCells
+};
+
+export const getRetreatCells = (item: BoardCell, boardConfig: BoardCell[]) => {
+    const fromItem = parseInt(item.id);
+    const occupiedStepCellsByOpponent = getOccupiedStepCells(item, boardConfig, false, false, true);
+    const occupiedSideCellsByOpponent = getOccupiedSideCells(item, boardConfig);
+    const occupiedAdjCellsByOpponent = [...occupiedStepCellsByOpponent, ...occupiedSideCellsByOpponent];
+
+    // Check if it is adjacent to an enemy soldier
+    if (occupiedAdjCellsByOpponent.length > 0) {
+        console.log('threat!');
+        // Target and intermediate spots are empty
+        const retreatCandidates = getStepCells(item, true, true);
+        const stepBackCells = getStepCells(item, true, false);
+        const freeMapping = stepBackCells.sort().map(cell => boardConfig[cell].value !== 'none' ? false : true);
+        console.log(retreatCandidates, stepBackCells, freeMapping);
+        return retreatCandidates.filter((cell, index) => freeMapping[index])
+    } else {
+        return []
+    }
+};
+
 export const allowedMoves = (item: any, boardConfig: any) => {
 
     let allowedMoves = [];
@@ -79,7 +125,11 @@ export const allowedMoves = (item: any, boardConfig: any) => {
     
     // A soldier may capture an enemy piece (a soldier or the Town) standing on an adjacent 
     // point by moving one step sideways, forward or diagonally forward:
-    allowedMoves.push(...getOccupiedAdjCells(item, boardConfig));
+    allowedMoves.push(...getOccupiedSideCells(item, boardConfig));
+
+    // A soldier can retreat two points backwards or diagonally backwards if it is adjacent 
+    // to an enemy soldier and if the target and intermediate spots are empty:
+    allowedMoves.push(...getRetreatCells(item, boardConfig));
 
     return allowedMoves
 };
