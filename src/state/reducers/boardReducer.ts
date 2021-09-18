@@ -44,7 +44,7 @@ const reducer = produce(
                 state.isDragging = true;
                 console.log(action);
                 state.currentDragging = action.payload.item;
-                const allowedPositions = allowedMoves(state.currentDragging, null);
+                const allowedPositions = allowedMoves(state.currentDragging, state.boardConfig);
                 state.allowedPositions = allowedPositions;
                 return state;
 

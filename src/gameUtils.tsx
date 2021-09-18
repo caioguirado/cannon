@@ -1,3 +1,5 @@
+import { BoardCell } from "./boardCells";
+
 export const indexToXY = (index: number): {x: number, y: number} => {
     let x = index % 10;
     let y = Math.abs(Math.floor(index / 10) - 9);
@@ -37,12 +39,47 @@ export const getStepCells = (item: any) => {
     }
 };
 
+export const checkSideCell = (item: BoardCell, boardConfig: BoardCell[], side: string) => {
+    const fromItem = parseInt(item.id);
+    const opponent: {[key: string]: string} = {'w': 'b', 'b': 'w'};
+    const cellSide: {[key: string]: number} = {left: -1, right: +1};
+    const sideItem = fromItem + cellSide[side];
+    console.log(boardConfig, sideItem)
+    return boardConfig[sideItem].value === opponent[item.value] ? [sideItem] : []
+};
+
+export const getOccupiedAdjCells = (item: BoardCell, boardConfig: BoardCell[]) => {
+    const fromItem = parseInt(item.id);
+    const allowedCells: number[] = [];
+
+    // Check board edges
+    if (fromItem % 10 === 0){
+        // Check if right adj is occupied by enemy
+        const rightItem = checkSideCell(item, boardConfig, 'right');
+        return [...allowedCells, ...rightItem]
+    } else if ((fromItem + 1) % 10 === 0) {
+        // Check if left adj is occupied by enemy
+        // Check if left adj is occupied by enemy
+        const leftItem = checkSideCell(item, boardConfig, 'left');
+        return [...allowedCells, ...leftItem]
+    } else {
+        // Not edge, check right and left
+        const rightItem = checkSideCell(item, boardConfig, 'right');
+        const leftItem = checkSideCell(item, boardConfig, 'left');
+        return [...allowedCells, ...rightItem, ...leftItem]
+    }
+};
+
 export const allowedMoves = (item: any, boardConfig: any) => {
 
     let allowedMoves = [];
 
     // A soldier may move one step forward or diagonally forward to an adjacent empty point
     allowedMoves.push(...getStepCells(item));
+    
+    // A soldier may capture an enemy piece (a soldier or the Town) standing on an adjacent 
+    // point by moving one step sideways, forward or diagonally forward:
+    allowedMoves.push(...getOccupiedAdjCells(item, boardConfig));
 
     return allowedMoves
 };
