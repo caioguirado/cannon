@@ -12,7 +12,7 @@ import { useTypedSelector } from '../hooks/use-typed-selector';
 
 export const Board = () => {
 
-    const {boardConfig, boardCells} = useTypedSelector(({board: {boardConfig, boardCells}}) => {
+    const {boardConfig, boardCells} = useTypedSelector(({game: {board: {boardConfig, boardCells}}}) => {
         return {boardConfig, boardCells}
     });
 

@@ -18,7 +18,7 @@ export const Cell = (props: CellProps) => {
 
     const {moveCell, deSelectCell} = useActions();
 
-    const {isDragging, boardConfig, allowedPositions} = useTypedSelector(({board: {isDragging, boardConfig, allowedPositions}}) => {
+    const {isDragging, boardConfig, allowedPositions} = useTypedSelector(({game: {board: {isDragging, boardConfig, allowedPositions}}}) => {
         return {isDragging, boardConfig, allowedPositions}
     });
 

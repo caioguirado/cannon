@@ -62,7 +62,6 @@ export const getOccupiedSideCells = (item: BoardCell, boardConfig: BoardCell[]) 
         return [...allowedCells, ...rightItem]
     } else if ((fromItem + 1) % 10 === 0) {
         // Check if left adj is occupied by enemy
-        // Check if left adj is occupied by enemy
         const leftItem = checkSideCell(item, boardConfig, 'left');
         return [...allowedCells, ...leftItem]
     } else {
@@ -104,16 +103,46 @@ export const getRetreatCells = (item: BoardCell, boardConfig: BoardCell[]) => {
 
     // Check if it is adjacent to an enemy soldier
     if (occupiedAdjCellsByOpponent.length > 0) {
-        console.log('threat!');
         // Target and intermediate spots are empty
         const retreatCandidates = getStepCells(item, true, true);
         const stepBackCells = getStepCells(item, true, false);
         const freeMapping = stepBackCells.sort().map(cell => boardConfig[cell].value !== 'none' ? false : true);
-        console.log(retreatCandidates, stepBackCells, freeMapping);
+
         return retreatCandidates.filter((cell, index) => freeMapping[index])
     } else {
         return []
     }
+};
+
+export const isCannon = (item: BoardCell, boardConfig: BoardCell[]) => {
+    /*
+        Cannon types: 
+            1. \    2. |    3.  /   4. --
+                \      |       /
+    */
+    const cannonTypeOffsets: {[key: string]: number[]} = {1: [-11, 11], 
+                                                            2: [-10, 10], 
+                                                            3: [-9, 9],
+                                                            4: [-1, 1]};
+    // Check all four line options
+    const typesFound = Object.keys(cannonTypeOffsets).forEach(ctype => {
+        const fromItem = parseInt(item.id);
+        const [ofst1, ofst2] = cannonTypeOffsets[ctype];
+        if (boardConfig[fromItem + ofst1].value !== 'none' 
+                && 
+            boardConfig[fromItem + ofst2].value !== 'none' ) {
+                return ctype
+        }
+    });
+
+
+
+};
+
+export const getCannonShootCells = (item: BoardCell, boardConfig: BoardCell[]) => {
+    // Check if it's a cannon, otherwise, return empty
+
+
 };
 
 export const allowedMoves = (item: any, boardConfig: any) => {
@@ -130,6 +159,9 @@ export const allowedMoves = (item: any, boardConfig: any) => {
     // A soldier can retreat two points backwards or diagonally backwards if it is adjacent 
     // to an enemy soldier and if the target and intermediate spots are empty:
     allowedMoves.push(...getRetreatCells(item, boardConfig));
+
+    // Cannon shoot
+    // allowedMoves.push(...getCannonShootCells(item, boardConfig));
 
     return allowedMoves
 };
