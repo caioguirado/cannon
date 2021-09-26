@@ -123,27 +123,107 @@ export const isCannon = (item: BoardCell, boardConfig: BoardCell[]) => {
             1. \    2. |    3.  /   4. --
                 \      |       /
     */
-    const cannonTypeOffsets: {[key: string]: number[]} = {1: [-11, 11], 
-                                                            2: [-10, 10], 
-                                                            3: [-9, 9],
-                                                            4: [-1, 1]};
+    const cannonTypeOffsets: {[key: string]: number} = {1: 11, 
+                                                            2: 10, 
+                                                            3: 9,
+                                                            4: 1}; // offsets
     // Check all four line options
-    const typesFound = Object.keys(cannonTypeOffsets).forEach(ctype => {
+    const typesFound = Object.keys(cannonTypeOffsets).filter(ctype => {
         const fromItem = parseInt(item.id);
-        const [ofst1, ofst2] = cannonTypeOffsets[ctype];
-        if (boardConfig[fromItem + ofst1].value !== 'none' 
+        const ofst = cannonTypeOffsets[ctype];
+        if (boardConfig[fromItem + ofst].value === item.value
                 && 
-            boardConfig[fromItem + ofst2].value !== 'none' ) {
+            boardConfig[fromItem - ofst].value === item.value) {
                 return ctype
         }
     });
 
+    return typesFound.length > 0 ? typesFound : null
+};
 
+export const calculateSide = (fromItem: number, newPosition: number) => {
+    const delta = (newPosition % 10) - (fromItem % 10);
+    const side = delta === 0 ? 'center' : (delta > 0 ? 'right' : 'left');
 
+    return side
+};
+
+export const filterOffsetPositions = (positions: number[], 
+                                        diagMap: {[key: string]: string}, 
+                                        coordinateRef: string[],
+                                        fromItem: number
+) => {
+    const allowedPositions = positions.filter((position, index) => {
+        const vertical = coordinateRef[index];
+        const horizontal = calculateSide(fromItem, position);
+        const correct = diagMap[vertical];
+        
+        return correct === horizontal
+    });
+
+    return allowedPositions
+};
+
+export const validateOffset = (item: BoardCell, ofst: number, ctype: string) => {
+
+    const fromItem = parseInt(item.id);
+    const newPositions = [fromItem + ofst * -3, fromItem + ofst * -4,  fromItem + ofst * 3, fromItem + ofst * 4];
+    const coordinateRef = ['top', 'top', 'bottom', 'bottom'];
+    let diagMap: {[key: string]: string};
+
+    if (ctype === '1'){
+        diagMap = {bottom: 'right', top: 'left'};
+        const allowedPositions = filterOffsetPositions(newPositions, diagMap, coordinateRef, fromItem);
+
+        return allowedPositions
+
+    } else if (ctype === '2'){
+        const allowedPositions = newPositions.filter(position => position >= 0 && position <= 99);
+
+        return allowedPositions
+
+    } else if (ctype === '3'){
+        diagMap = {bottom: 'left', top: 'right'};
+        const allowedPositions = filterOffsetPositions(newPositions, diagMap, coordinateRef, fromItem);
+
+        return allowedPositions
+
+    } else {
+        const itemRow = Math.floor(fromItem / 10);
+        const allowedPositions = newPositions.filter(position => {
+            const positionRow = Math.floor(position / 10);
+
+            return positionRow === itemRow
+        });
+
+        return allowedPositions
+    }
 };
 
 export const getCannonShootCells = (item: BoardCell, boardConfig: BoardCell[]) => {
+    /*
+        Cannon types: 
+            1. \    2. |    3.  /   4. --
+                \      |       /
+    */
+    const cannonTypeOffsets: {[key: string]: number} = {1: 11, 
+                                                        2: 10, 
+                                                        3: 9,
+                                                        4: 1}; // offsets
+
     // Check if it's a cannon, otherwise, return empty
+    const typesFound = isCannon(item, boardConfig);
+    if (typesFound){
+        let allowedMoves: number[] = [];
+        typesFound.forEach(ctype => {
+            const fromItem = parseInt(item.id);
+            const ofst = cannonTypeOffsets[ctype];
+            allowedMoves.push(...validateOffset(item, ofst, ctype))
+        })
+        return allowedMoves;
+    } else {
+        return []
+    }
 
 
 };
@@ -178,7 +258,7 @@ export const allowedMoves = (item: any, boardConfig: any, tType: any) => {
         allowedMoves.push(...getRetreatCells(item, boardConfig));
         
         // Cannon shoot
-        // allowedMoves.push(...getCannonShootCells(item, boardConfig));
+        allowedMoves.push(...getCannonShootCells(item, boardConfig));
         
         return allowedMoves
     }
