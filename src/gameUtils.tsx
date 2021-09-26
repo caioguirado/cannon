@@ -224,7 +224,47 @@ export const getCannonShootCells = (item: BoardCell, boardConfig: BoardCell[]) =
     } else {
         return []
     }
+};
 
+export const getBoardValue = (id: number, boardConfig: BoardCell[]) => {
+    if (id > 99 || id < 0) {
+        return -1
+    } else {
+        return boardConfig[id].value
+    }
+};
+
+export const getCannonMoveCells = (item: BoardCell, boardConfig: BoardCell[]) => {
+    // Check if item is cannon edge
+    const allowedMoves: number[] = [];
+    const cannonEdgeOffsets: {[key: string]: number} = {1: 11, 
+                                                        2: 10, 
+                                                        3: 9,
+                                                        4: 1}; // offsets
+
+    const typesFound = Object.keys(cannonEdgeOffsets).forEach(ctype => {
+        const fromItem = parseInt(item.id);
+        const ofst = cannonEdgeOffsets[ctype];
+        if (getBoardValue(fromItem + ofst * -1, boardConfig) === item.value
+                && 
+            getBoardValue(fromItem + ofst * -2, boardConfig) === item.value) {
+
+                const movePosition = boardConfig[fromItem + ofst * -3].value === 'none' ? [fromItem + ofst * -3] : [];
+                allowedMoves.push(...movePosition);
+        } 
+
+        // TODO check if a 3+ size cannon can be splitted
+        if (getBoardValue(fromItem + ofst * 1, boardConfig) === item.value
+                && 
+            getBoardValue(fromItem + ofst * 2, boardConfig) === item.value){
+
+                const movePosition = boardConfig[fromItem + ofst * 3].value === 'none' ? [fromItem + ofst * 3] : [];
+                allowedMoves.push(...movePosition);
+
+        }
+    });
+
+    return allowedMoves
 
 };
 
@@ -260,6 +300,9 @@ export const allowedMoves = (item: any, boardConfig: any, tType: any) => {
         // Cannon shoot
         allowedMoves.push(...getCannonShootCells(item, boardConfig));
         
+        // Cannon move
+        allowedMoves.push(...getCannonMoveCells(item, boardConfig));
+
         return allowedMoves
     }
 };
