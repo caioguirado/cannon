@@ -23,9 +23,17 @@ export const getCellColor = (index: number) => {
     return (x + y) % 2 === 1 ? 'black' : 'white'
 };
 
-// const checkMove = (item, props, boardConfig) => {
+export const getBoardValue = (id: number, boardConfig: BoardCell[]) => {
+    if (id > 99 || id < 0) {
+        return -1
+    } else {
+        return boardConfig[id].value
+    }
+};
 
-// };
+export const checkStepMove = (positions: number[], boardConfig: BoardCell[], itemMoving: BoardCell) => {
+    return positions.filter((position, index) => getBoardValue(position, boardConfig) !== itemMoving.value)
+};
 
 export const getStepCells = (item: any, backwards: boolean = false, double: boolean = false) => {
     const depth = double ? 2 : 1;
@@ -43,6 +51,13 @@ export const getStepCells = (item: any, backwards: boolean = false, double: bool
         if ((fromItem + (1 * reverse)) % 10 === 0) {return [fromItem + (9 * reverse - correction), fromItem + (10 * reverse)]} // Last in row
         return [fromItem + (9 * reverse - correction), fromItem + (10 * reverse), fromItem + (11 * reverse + correction)]
     }
+};
+
+export const getAllowedStepCells = (item: BoardCell, boardConfig: BoardCell[]) => {
+    const stepCells = getStepCells(item);
+    const allowedMoves = checkStepMove(stepCells, boardConfig, item);
+
+    return allowedMoves
 };
 
 export const checkSideCell = (item: BoardCell, boardConfig: BoardCell[], side: string) => {
@@ -226,14 +241,6 @@ export const getCannonShootCells = (item: BoardCell, boardConfig: BoardCell[]) =
     }
 };
 
-export const getBoardValue = (id: number, boardConfig: BoardCell[]) => {
-    if (id > 99 || id < 0) {
-        return -1
-    } else {
-        return boardConfig[id].value
-    }
-};
-
 export const getCannonMoveCells = (item: BoardCell, boardConfig: BoardCell[]) => {
     // Check if item is cannon edge
     const allowedMoves: number[] = [];
@@ -265,7 +272,6 @@ export const getCannonMoveCells = (item: BoardCell, boardConfig: BoardCell[]) =>
     });
 
     return allowedMoves
-
 };
 
 export const allowedMoves = (item: any, boardConfig: any, tType: any) => {
@@ -287,7 +293,8 @@ export const allowedMoves = (item: any, boardConfig: any, tType: any) => {
     } else {
 
         // A soldier may move one step forward or diagonally forward to an adjacent empty point
-        allowedMoves.push(...getStepCells(item));
+        // allowedMoves.push(...getStepCells(item));
+        allowedMoves.push(...getAllowedStepCells(item, boardConfig));
         
         // A soldier may capture an enemy piece (a soldier or the Town) standing on an adjacent 
         // point by moving one step sideways, forward or diagonally forward:
