@@ -22,4 +22,21 @@ export interface DeSelectCellAction {
     payload: {}
 };
 
-export type Action = MoveCellAction | DragCellAction | DeSelectCellAction;
+export interface StartGameAction {
+    type: ActionType.START_GAME,
+    payload: {}
+};
+
+export interface PlaceTowerAction {
+    type: ActionType.PLACE_TOWER,
+    payload: {
+        item: any;
+        to: string;
+    }
+};
+
+export type Action = MoveCellAction 
+                    | DragCellAction 
+                    | DeSelectCellAction
+                    | StartGameAction 
+                    | PlaceTowerAction;

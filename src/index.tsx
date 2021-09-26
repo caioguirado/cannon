@@ -1,5 +1,6 @@
 import {boardCells} from './boardCells';
 import {boardConfig} from './boardConfig';
+import { HeaderInfo } from './components/HeaderInfo';
 import ReactDOM from 'react-dom';
 import { Provider } from 'react-redux';
 import {store} from './state';
@@ -16,6 +17,7 @@ const App = () => {
                 <GameArea>
                     <Container>
                         <DndProvider backend={HTML5Backend}> 
+                            <HeaderInfo/>
                             <Board/>
                         </DndProvider>
                     </Container>

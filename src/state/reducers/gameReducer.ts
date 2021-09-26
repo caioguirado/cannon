@@ -14,12 +14,13 @@ interface BoardState {
     currentDragging: BoardCell | null
 }
 
-enum TurnType {
+export enum TurnType {
     P1 = 'p1',
     P2 = 'p2',
     PLACEMENT_P1 = 'placement_p1',
     PLACEMENT_P2 = 'placement_p2',
-    TERMINAL = 'terminal'
+    TERMINAL = 'terminal',
+    START_GAME = 'start_game'
 }
 
 interface GameState {
@@ -46,11 +47,13 @@ class Node {
     }
 };
 
+const start = new Node(TurnType.START_GAME, null);
 const placementP1 = new Node(TurnType.PLACEMENT_P1, null);
 const placementP2 = new Node(TurnType.PLACEMENT_P2, null);
 const p1 = new Node(TurnType.P1, null);
 const p2 = new Node(TurnType.P2, null);
 
+start.next = placementP1;
 placementP1.next = placementP2;
 placementP2.next = p1;
 p1.next = p2;
@@ -65,7 +68,7 @@ const initialState: GameState = {
         allowedPositions: [],
         currentDragging: null
     },
-    turnType: TurnType.PLACEMENT_P1
+    turnType: TurnType.START_GAME
 };
 
 const llFind: any = (node: any, TType: TurnType) => {
@@ -76,6 +79,8 @@ const llFind: any = (node: any, TType: TurnType) => {
     };
 };
 
+const getNextTurnType = (llHead: any, searchValue: any) => llFind(llHead, searchValue).next.value;
+
 const reducer = produce(
     (state: GameState | undefined = initialState, action: Action): GameState => {
         switch (action.type){
@@ -83,28 +88,38 @@ const reducer = produce(
 
                 const fromIndex = parseInt(action.payload.from);
                 const toIndex = parseInt(action.payload.to);
-                console.log(action);
+                
                 console.log(`fromIndex: ${fromIndex}, toIndex: ${toIndex}`);
-                // state.boardConfig[toIndex].value = action.payload.value;
+
                 state.board.boardConfig[toIndex].value = state.board.boardConfig[fromIndex].value;
                 state.board.boardConfig[fromIndex].value = 'none';
-                
-                const currentTurnType = llFind(placementP1, state.turnType);
-                state.turnType = currentTurnType.next.value
+                state.turnType = getNextTurnType(start, state.turnType);
 
                 return state;
 
             case ActionType.DRAG_CELL:
                 state.board.isDragging = true;
-                console.log(action);
                 state.board.currentDragging = action.payload.item;
-                const allowedPositions = allowedMoves(state.board.currentDragging, state.board.boardConfig);
-                state.board.allowedPositions = allowedPositions;
+                state.board.allowedPositions = allowedMoves(state.board.currentDragging, state.board.boardConfig, state.turnType);
                 return state;
 
             case ActionType.DESELECT_CELL:
                 state.board.isDragging = false;
                 state.board.currentDragging = null;
+                return state;
+
+            case ActionType.START_GAME:
+                const nextTurnType = getNextTurnType(start, state.turnType);
+                // state.board.allowedPositions = allowedMoves(state.board.currentDragging, state.board.boardConfig, nextTurnType);
+                state.turnType = nextTurnType;
+                return state;
+
+            case ActionType.PLACE_TOWER:
+                const toPosition = parseInt(action.payload.to);
+
+                state.board.boardConfig[toPosition].value = 't' + action.payload.item.value;
+                state.turnType = getNextTurnType(start, state.turnType);
+
                 return state;
 
             default: 

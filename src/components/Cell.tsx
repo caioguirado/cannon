@@ -1,10 +1,11 @@
 import React from 'react';
-import { Piece } from './Piece';
+import { Piece, PieceType } from './Piece';
 import {getCellColor} from '../gameUtils';
 import pointSVG from '../assets/point.svg';
 import {useActions} from '../hooks/use-actions';
 import {useDrag, useDrop, DragPreviewImage} from 'react-dnd';
 import { useTypedSelector } from '../hooks/use-typed-selector';
+import { TurnType } from '../state/reducers/gameReducer';
 
 
 type CellProps = {
@@ -16,10 +17,10 @@ type CellProps = {
 
 export const Cell = (props: CellProps) => {
 
-    const {moveCell, deSelectCell} = useActions();
+    const {moveCell, deSelectCell, placeTower} = useActions();
 
-    const {isDragging, boardConfig, allowedPositions} = useTypedSelector(({game: {board: {isDragging, boardConfig, allowedPositions}}}) => {
-        return {isDragging, boardConfig, allowedPositions}
+    const {isDragging, boardConfig, allowedPositions, turnType} = useTypedSelector(({game: {board: {isDragging, boardConfig, allowedPositions}, turnType}}) => {
+        return {isDragging, boardConfig, allowedPositions, turnType}
     });
 
     const [collectedProps, drop] = useDrop({
@@ -33,12 +34,17 @@ export const Cell = (props: CellProps) => {
                 return
             }
             // If so change board state
+            if (!item.id){
+                placeTower(item, props.id);
+                deSelectCell();
+                return
+            }
             
             moveCell(item.id, props.id, item.value);
             deSelectCell();
         }
     });
-    // console.log(parseInt(props.id), allowedPositions, parseInt(props.id) in allowedPositions);
+
     const color = '#f9dfa4';
     return (
         <div 
@@ -49,11 +55,22 @@ export const Cell = (props: CellProps) => {
         >
                 {
                     props.content !== 'none' ?
-                        <Piece id={props.id} value={props.content}/> : null
+                        <Piece id={props.id} 
+                                value={props.content.replace('t', '')} 
+                                isDraggable={(turnType.includes('p1') && props.content === 'w') 
+                                                || (turnType.includes('p2') && props.content === 'b')}
+                                type={
+                                    props.content.includes('t') ? PieceType.TOWER : PieceType.PAWN
+                                }
+                        /> : null
                 }
                 {
-                    props.cname === 'outerCell' && isDragging && allowedPositions.includes(parseInt(props.id)) ? 
-                        <img className='point' src={pointSVG} alt='point'/> : null
+                    ( (props.cname === 'outerCell' || turnType.includes('placement')) 
+                        && isDragging 
+                        && allowedPositions.includes(parseInt(props.id)) 
+                    ) ? 
+                        <img className='point' src={pointSVG} alt='point'/> 
+                        : null
                 }
                 
         </div>

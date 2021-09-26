@@ -1,4 +1,5 @@
 import { BoardCell } from "./boardCells";
+import { TurnType } from "./state/reducers/gameReducer";
 
 export const indexToXY = (index: number): {x: number, y: number} => {
     let x = index % 10;
@@ -32,10 +33,12 @@ export const getStepCells = (item: any, backwards: boolean = false, double: bool
     const reverse = backwards ? -1 * depth : 1;
     const fromItem = parseInt(item.id);
     if (item.value === 'w'){
+        if (fromItem <= 9) { return [] } // Off board
         if (fromItem % 10 === 0) {return [fromItem - (10 * reverse), fromItem - (9 * reverse - correction)]} // First in row
         if ((fromItem + 1) % 10 === 0) {return [fromItem - (11 * reverse + correction), fromItem - (10 * reverse)]} // Last in row
         return [fromItem - (11 * reverse + correction), fromItem - (10 * reverse), fromItem - (9 * reverse - correction)]
     } else {
+        if (fromItem >= 90) { return [] } // Off board
         if (fromItem % 10 === 0) {return [fromItem + (10 * reverse), fromItem + (11 * reverse + correction)]} // First in row
         if ((fromItem + (1 * reverse)) % 10 === 0) {return [fromItem + (9 * reverse - correction), fromItem + (10 * reverse)]} // Last in row
         return [fromItem + (9 * reverse - correction), fromItem + (10 * reverse), fromItem + (11 * reverse + correction)]
@@ -145,23 +148,38 @@ export const getCannonShootCells = (item: BoardCell, boardConfig: BoardCell[]) =
 
 };
 
-export const allowedMoves = (item: any, boardConfig: any) => {
+export const allowedMoves = (item: any, boardConfig: any, tType: any) => {
 
-    let allowedMoves = [];
+    let allowedMoves: number[] = [];
 
-    // A soldier may move one step forward or diagonally forward to an adjacent empty point
-    allowedMoves.push(...getStepCells(item));
-    
-    // A soldier may capture an enemy piece (a soldier or the Town) standing on an adjacent 
-    // point by moving one step sideways, forward or diagonally forward:
-    allowedMoves.push(...getOccupiedSideCells(item, boardConfig));
+    if (tType === TurnType.PLACEMENT_P1){
 
-    // A soldier can retreat two points backwards or diagonally backwards if it is adjacent 
-    // to an enemy soldier and if the target and intermediate spots are empty:
-    allowedMoves.push(...getRetreatCells(item, boardConfig));
+        return Array.from(Array(100).keys()).slice(90, 100)
 
-    // Cannon shoot
-    // allowedMoves.push(...getCannonShootCells(item, boardConfig));
+    } else if (tType === TurnType.PLACEMENT_P2){
 
-    return allowedMoves
+        return Array.from(Array(100).keys()).slice(0, 10)
+
+    } else if (tType === TurnType.START_GAME) {
+
+        return allowedMoves;
+
+    } else {
+
+        // A soldier may move one step forward or diagonally forward to an adjacent empty point
+        allowedMoves.push(...getStepCells(item));
+        
+        // A soldier may capture an enemy piece (a soldier or the Town) standing on an adjacent 
+        // point by moving one step sideways, forward or diagonally forward:
+        allowedMoves.push(...getOccupiedSideCells(item, boardConfig));
+        
+        // A soldier can retreat two points backwards or diagonally backwards if it is adjacent 
+        // to an enemy soldier and if the target and intermediate spots are empty:
+        allowedMoves.push(...getRetreatCells(item, boardConfig));
+        
+        // Cannon shoot
+        // allowedMoves.push(...getCannonShootCells(item, boardConfig));
+        
+        return allowedMoves
+    }
 };

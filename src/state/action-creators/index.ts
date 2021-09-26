@@ -27,3 +27,21 @@ export const deSelectCell = () => {
         payload: {}
     }
 };
+
+export const startGame = () => {
+    return {
+        type: ActionType.START_GAME,
+        payload: {}
+    }
+};
+
+
+export const placeTower = (item: any, to: any) => {
+    return {
+        type: ActionType.PLACE_TOWER,
+        payload: {
+            item,
+            to
+        }
+    }
+};

@@ -3,11 +3,23 @@ $boardSize: 35vw;
 * {
   margin: 0;
   padding: 0;
-  color: red;
+  color: rgb(0, 0, 0);
 }
 
 .gameArea {
   padding: 10%;
+}
+
+.headerInfo {
+  height: 10%;
+
+  & div {
+    height: 90%;
+    display: inline;
+    & img {
+      height: 90%;
+    }
+  }
 }
 
 .container {
@@ -19,6 +31,7 @@ $boardSize: 35vw;
   //   border-color: black;
   //   border-style: dashed;
   margin: auto;
+  display: block;
 }
 
 .outerBoard {
