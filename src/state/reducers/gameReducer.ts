@@ -84,7 +84,7 @@ const llFind: any = (node: any, TType: TurnType) => {
 const getNextTurnType = (llHead: any, searchValue: any) => llFind(llHead, searchValue).next.value;
 
 const reducer = produce(
-    (state: GameState | undefined = initialState, action: Action): GameState => {
+    (state: GameState | undefined = initialState, action: Action): (GameState | void) => {
         switch (action.type){
             case ActionType.MOVE_CELL:
 
@@ -92,6 +92,14 @@ const reducer = produce(
                 const toIndex = parseInt(action.payload.to);
                 
                 console.log(`fromIndex: ${fromIndex}, toIndex: ${toIndex}`);
+
+                // Check if termination
+                if (state.board.boardConfig[toIndex].value[0] === 't'){
+                    state.turnType = TurnType.TERMINAL
+                    state.board.boardConfig[toIndex].value = state.board.boardConfig[fromIndex].value;
+                    state.board.boardConfig[fromIndex].value = 'none';
+                    return
+                }
 
                 state.board.boardConfig[toIndex].value = state.board.boardConfig[fromIndex].value;
                 state.board.boardConfig[fromIndex].value = 'none';
@@ -112,8 +120,10 @@ const reducer = produce(
                 return state;
 
             case ActionType.START_GAME:
+                if (state.turnType === TurnType.TERMINAL) {return initialState}
                 const nextTurnType = getNextTurnType(start, state.turnType);
                 state.turnType = nextTurnType;
+
                 return state;
 
             case ActionType.PLACE_TOWER:
@@ -126,6 +136,13 @@ const reducer = produce(
 
             case ActionType.SHOOT_CELL:
                 const toCell = action.payload.item;
+
+                // Check if termination
+                if (state.board.boardConfig[toCell].value[0] === 't'){
+                    state.turnType = TurnType.TERMINAL
+                    state.board.boardConfig[toCell].value = 'none';
+                    return
+                }
 
                 state.board.boardConfig[toCell].value = 'none';
                 state.turnType = getNextTurnType(start, state.turnType);

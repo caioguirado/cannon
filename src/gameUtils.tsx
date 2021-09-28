@@ -31,6 +31,12 @@ export const getBoardValue = (id: number, boardConfig: BoardCell[]) => {
     }
 };
 
+export const isCellOpponent = (item: BoardCell, toCell: number, boardConfig: BoardCell[]) => {
+    const opponent: {[key: string]: string[]} = {'w': ['b', 'tb'], 'b': ['w', 'tw']};
+    const toCellValue = boardConfig[toCell].value;
+    return opponent[item.value].includes(toCellValue);
+};
+
 export const checkStepMove = (positions: number[], boardConfig: BoardCell[], itemMoving: BoardCell) => {
     return positions.filter((position, index) => getBoardValue(position, boardConfig) !== itemMoving.value)
 };
@@ -66,7 +72,7 @@ export const checkSideCell = (item: BoardCell, boardConfig: BoardCell[], side: s
     const cellSide: {[key: string]: number} = {left: -1, right: +1};
     const sideItem = fromItem + cellSide[side];
 
-    return boardConfig[sideItem].value === opponent[item.value] ? [sideItem] : []
+    return isCellOpponent(item, sideItem, boardConfig) ? [sideItem] : []
 };
 
 export const getOccupiedSideCells = (item: BoardCell, boardConfig: BoardCell[]) => {
@@ -100,7 +106,7 @@ export const getOccupiedStepCells = (
     const opponent: {[key: string]: string} = {'w': 'b', 'b': 'w'};
     const occupiedStepCells = getStepCells(item, backwards, double).filter(stepCell => {
         if (byOpponent){
-            if (boardConfig[stepCell].value === opponent[item.value]){
+            if (isCellOpponent(item, stepCell, boardConfig)){
                 return stepCell
             }
         } else {
@@ -185,10 +191,9 @@ export const validateOffset = (item: BoardCell, ofst: number, ctype: string, boa
     const fromItem = parseInt(item.id);
     // const newPositions = [fromItem + ofst * -3, fromItem + ofst * -4,  fromItem + ofst * 3, fromItem + ofst * 4];
     const newPositions = [];
-    if (boardConfig[fromItem + ofst * -2].value !== opponent[item.value]) {newPositions.push(...[fromItem + ofst * -3, fromItem + ofst * -4])}
-    if (boardConfig[fromItem + ofst * 2].value !== opponent[item.value]) {newPositions.push(...[fromItem + ofst * 3, fromItem + ofst * 4])}
+    if (!isCellOpponent(item, fromItem + ofst * -2, boardConfig)) {newPositions.push(...[fromItem + ofst * -3, fromItem + ofst * -4])}
+    if (!isCellOpponent(item, fromItem + ofst * 2, boardConfig)) {newPositions.push(...[fromItem + ofst * 3, fromItem + ofst * 4])}
     // const coordinateRef = ['top', 'top', 'bottom', 'bottom'];
-    console.log(item.id, newPositions);
     const coordinateRef = newPositions.map(n => n < fromItem ? 'top' : 'bottom');
     let diagMap: {[key: string]: string};
 
@@ -246,14 +251,8 @@ export const getCannonShootCells = (item: BoardCell, boardConfig: BoardCell[], t
 
             allowedMoves.push(...validateOffset(item, ofst, ctype, boardConfig));
         });
-        console.log(allowedMoves);
-        allowedMoves = allowedMoves.filter(position => {
-            console.log(position);
-            console.log(boardConfig);
-            console.log(boardConfig[position]);
-            console.log(boardConfig[position].value);
-            if (boardConfig[position].value === opponent[item.value]){return position}
-        });
+
+        allowedMoves = allowedMoves.filter(position => isCellOpponent(item, position, boardConfig));
 
         return allowedMoves;
     } else {
