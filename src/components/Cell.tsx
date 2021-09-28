@@ -2,6 +2,7 @@ import React from 'react';
 import { Piece, PieceType } from './Piece';
 import {getCellColor} from '../gameUtils';
 import pointSVG from '../assets/point.svg';
+import redPointSVG from '../assets/shotPoint.svg'
 import {useActions} from '../hooks/use-actions';
 import {useDrag, useDrop, DragPreviewImage} from 'react-dnd';
 import { useTypedSelector } from '../hooks/use-typed-selector';
@@ -17,10 +18,10 @@ type CellProps = {
 
 export const Cell = (props: CellProps) => {
 
-    const {moveCell, deSelectCell, placeTower} = useActions();
+    const {moveCell, deSelectCell, placeTower, shootCell} = useActions();
 
-    const {isDragging, boardConfig, allowedPositions, turnType} = useTypedSelector(({game: {board: {isDragging, boardConfig, allowedPositions}, turnType}}) => {
-        return {isDragging, boardConfig, allowedPositions, turnType}
+    const {isDragging, allowedPositions, allowedShots, turnType} = useTypedSelector(({game: {board: {isDragging, allowedPositions, allowedShots}, turnType}}) => {
+        return {isDragging, allowedPositions, allowedShots, turnType}
     });
 
     const [collectedProps, drop] = useDrop({
@@ -28,27 +29,53 @@ export const Cell = (props: CellProps) => {
         drop: (item: any) => {
             console.log(item, props);
             
+            const toCell = parseInt(props.id);
+
             // Check if move is allowed
-            // const isMoveAllowed = checkMove(item, props, boardConfig);
-            if (!allowedPositions.includes(parseInt(props.id))){
+            // If so change board state
+            if (!allowedPositions.includes(toCell)){
+                deSelectCell();
                 return
             }
-            // If so change board state
+
+            // Tower placement phase
             if (!item.id){
                 placeTower(item, props.id);
                 deSelectCell();
                 return
             }
             
-            moveCell(item.id, props.id, item.value);
-            deSelectCell();
+            // Check if move is shooting or normal move
+            if (allowedShots.includes(toCell)){
+                shootCell(toCell);
+                deSelectCell();
+            } else {
+                moveCell(item.id, props.id, item.value);
+                deSelectCell();
+            }
         }
     });
+
+    const getPointCell = (props: any, turnType: any, isDragging: any, allowedPositions: any, allowedShots: any) => {
+        if (isDragging && allowedShots.includes(parseInt(props.id))){
+
+            return <img className='point' src={redPointSVG} alt='point'/> 
+
+        } else if ( (props.cname === 'outerCell' || turnType.includes('placement')) 
+                        && isDragging 
+                        && allowedPositions.includes(parseInt(props.id)) 
+                    ){
+            
+            return <img className='point' src={pointSVG} alt='point'/> 
+        } else {
+            return null
+        }
+    };
 
     const color = '#f9dfa4';
     return (
         <div 
-            className={props.cname ? props.cname : 'cell' }
+            className={props.cname ? props.cname : 'cell'}
             ref={drop}
             style={{backgroundColor: color}}
             data-val={props.content}
@@ -65,12 +92,7 @@ export const Cell = (props: CellProps) => {
                         /> : null
                 }
                 {
-                    ( (props.cname === 'outerCell' || turnType.includes('placement')) 
-                        && isDragging 
-                        && allowedPositions.includes(parseInt(props.id)) 
-                    ) ? 
-                        <img className='point' src={pointSVG} alt='point'/> 
-                        : null
+                    getPointCell(props, turnType, isDragging, allowedPositions, allowedShots)
                 }
                 
         </div>

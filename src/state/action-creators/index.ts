@@ -45,3 +45,12 @@ export const placeTower = (item: any, to: any) => {
         }
     }
 };
+
+export const shootCell = (item: any) => {
+    return {
+        type: ActionType.SHOOT_CELL,
+        payload: {
+            item
+        }
+    }
+};

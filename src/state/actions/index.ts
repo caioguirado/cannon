@@ -35,8 +35,16 @@ export interface PlaceTowerAction {
     }
 };
 
+export interface ShootCellAction {
+    type: ActionType.SHOOT_CELL,
+    payload: {
+        item: any;
+    }
+};
+
 export type Action = MoveCellAction 
                     | DragCellAction 
                     | DeSelectCellAction
                     | StartGameAction 
-                    | PlaceTowerAction;
+                    | PlaceTowerAction
+                    | ShootCellAction;

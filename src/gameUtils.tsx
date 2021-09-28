@@ -224,7 +224,10 @@ export const validateBlockShot = (item: BoardCell, boardConfig: BoardCell[], ofs
 
 };
 
-export const getCannonShootCells = (item: BoardCell, boardConfig: BoardCell[]) => {
+export const getCannonShootCells = (item: BoardCell, boardConfig: BoardCell[], tType: any) => {
+    
+    if ([TurnType.PLACEMENT_P1, TurnType.PLACEMENT_P2, TurnType.START_GAME].includes(tType)) {return []}
+
     /*
         Cannon types: 
             1. \    2. |    3.  /   4. --
@@ -318,7 +321,7 @@ export const allowedMoves = (item: any, boardConfig: any, tType: any) => {
         allowedMoves.push(...getRetreatCells(item, boardConfig));
         
         // Cannon shoot
-        allowedMoves.push(...getCannonShootCells(item, boardConfig));
+        allowedMoves.push(...getCannonShootCells(item, boardConfig, tType));
         
         // Cannon move
         allowedMoves.push(...getCannonMoveCells(item, boardConfig));

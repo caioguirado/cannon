@@ -3,7 +3,7 @@ import {Action} from '../actions';
 import produce from 'immer';
 import {boardConfig} from '../../boardConfig';
 import {BoardCell, boardCells} from '../../boardCells';
-import {allowedMoves} from '../../gameUtils';
+import {allowedMoves, getCannonShootCells} from '../../gameUtils';
 
 interface BoardState {
     isDragging: boolean;
@@ -11,6 +11,7 @@ interface BoardState {
     boardCells: number[];
     testInt: number;
     allowedPositions: number[];
+    allowedShots: number[];
     currentDragging: BoardCell | null
 }
 
@@ -66,6 +67,7 @@ const initialState: GameState = {
         boardCells,
         testInt: 5,
         allowedPositions: [],
+        allowedShots: [],
         currentDragging: null
     },
     turnType: TurnType.START_GAME
@@ -101,6 +103,7 @@ const reducer = produce(
                 state.board.isDragging = true;
                 state.board.currentDragging = action.payload.item;
                 state.board.allowedPositions = allowedMoves(state.board.currentDragging, state.board.boardConfig, state.turnType);
+                state.board.allowedShots = getCannonShootCells(state.board.currentDragging, state.board.boardConfig, state.turnType);
                 return state;
 
             case ActionType.DESELECT_CELL:
@@ -110,7 +113,6 @@ const reducer = produce(
 
             case ActionType.START_GAME:
                 const nextTurnType = getNextTurnType(start, state.turnType);
-                // state.board.allowedPositions = allowedMoves(state.board.currentDragging, state.board.boardConfig, nextTurnType);
                 state.turnType = nextTurnType;
                 return state;
 
@@ -118,6 +120,14 @@ const reducer = produce(
                 const toPosition = parseInt(action.payload.to);
 
                 state.board.boardConfig[toPosition].value = 't' + action.payload.item.value;
+                state.turnType = getNextTurnType(start, state.turnType);
+
+                return state;
+
+            case ActionType.SHOOT_CELL:
+                const toCell = action.payload.item;
+
+                state.board.boardConfig[toCell].value = 'none';
                 state.turnType = getNextTurnType(start, state.turnType);
 
                 return state;
