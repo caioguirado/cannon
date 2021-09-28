@@ -179,11 +179,16 @@ export const filterOffsetPositions = (positions: number[],
     return allowedPositions
 };
 
-export const validateOffset = (item: BoardCell, ofst: number, ctype: string) => {
+export const validateOffset = (item: BoardCell, ofst: number, ctype: string, boardConfig: BoardCell[]) => {
 
+    const opponent: {[key: string] : string} = {w: 'b', b: 'w'};
     const fromItem = parseInt(item.id);
-    const newPositions = [fromItem + ofst * -3, fromItem + ofst * -4,  fromItem + ofst * 3, fromItem + ofst * 4];
-    const coordinateRef = ['top', 'top', 'bottom', 'bottom'];
+    // const newPositions = [fromItem + ofst * -3, fromItem + ofst * -4,  fromItem + ofst * 3, fromItem + ofst * 4];
+    const newPositions = [];
+    if (boardConfig[fromItem + ofst * -2].value !== opponent[item.value]) {newPositions.push(...[fromItem + ofst * -3, fromItem + ofst * -4])}
+    if (boardConfig[fromItem + ofst * 2].value !== opponent[item.value]) {newPositions.push(...[fromItem + ofst * 3, fromItem + ofst * 4])}
+    // const coordinateRef = ['top', 'top', 'bottom', 'bottom'];
+    const coordinateRef = newPositions.map(n => n < fromItem ? 'top' : 'bottom');
     let diagMap: {[key: string]: string};
 
     if (ctype === '1'){
@@ -215,6 +220,10 @@ export const validateOffset = (item: BoardCell, ofst: number, ctype: string) => 
     }
 };
 
+export const validateBlockShot = (item: BoardCell, boardConfig: BoardCell[], ofst: number) => {
+
+};
+
 export const getCannonShootCells = (item: BoardCell, boardConfig: BoardCell[]) => {
     /*
         Cannon types: 
@@ -233,8 +242,11 @@ export const getCannonShootCells = (item: BoardCell, boardConfig: BoardCell[]) =
         typesFound.forEach(ctype => {
             const fromItem = parseInt(item.id);
             const ofst = cannonTypeOffsets[ctype];
-            allowedMoves.push(...validateOffset(item, ofst, ctype))
-        })
+
+            allowedMoves.push(...validateOffset(item, ofst, ctype, boardConfig));
+        });
+
+
         return allowedMoves;
     } else {
         return []
@@ -261,6 +273,7 @@ export const getCannonMoveCells = (item: BoardCell, boardConfig: BoardCell[]) =>
         } 
 
         // TODO check if a 3+ size cannon can be splitted
+
         if (getBoardValue(fromItem + ofst * 1, boardConfig) === item.value
                 && 
             getBoardValue(fromItem + ofst * 2, boardConfig) === item.value){

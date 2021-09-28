@@ -130,6 +130,10 @@ $boardSize: 35vw;
   border-color: black;
   border-width: 3px;
   border-style: solid;
+
+  & > div > img {
+    visibility: hidden;
+  }
 }
 
 .pieceBoard {
