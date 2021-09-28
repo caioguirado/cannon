@@ -173,7 +173,7 @@ export const filterOffsetPositions = (positions: number[],
         const horizontal = calculateSide(fromItem, position);
         const correct = diagMap[vertical];
         
-        return correct === horizontal
+        return correct === horizontal && position >=0 && position < 100
     });
 
     return allowedPositions
@@ -188,6 +188,7 @@ export const validateOffset = (item: BoardCell, ofst: number, ctype: string, boa
     if (boardConfig[fromItem + ofst * -2].value !== opponent[item.value]) {newPositions.push(...[fromItem + ofst * -3, fromItem + ofst * -4])}
     if (boardConfig[fromItem + ofst * 2].value !== opponent[item.value]) {newPositions.push(...[fromItem + ofst * 3, fromItem + ofst * 4])}
     // const coordinateRef = ['top', 'top', 'bottom', 'bottom'];
+    console.log(item.id, newPositions);
     const coordinateRef = newPositions.map(n => n < fromItem ? 'top' : 'bottom');
     let diagMap: {[key: string]: string};
 
@@ -220,10 +221,6 @@ export const validateOffset = (item: BoardCell, ofst: number, ctype: string, boa
     }
 };
 
-export const validateBlockShot = (item: BoardCell, boardConfig: BoardCell[], ofst: number) => {
-
-};
-
 export const getCannonShootCells = (item: BoardCell, boardConfig: BoardCell[], tType: any) => {
     
     if ([TurnType.PLACEMENT_P1, TurnType.PLACEMENT_P2, TurnType.START_GAME].includes(tType)) {return []}
@@ -238,17 +235,25 @@ export const getCannonShootCells = (item: BoardCell, boardConfig: BoardCell[], t
                                                         3: 9,
                                                         4: 1}; // offsets
 
+    const opponent: {[key: string]: string} = {'w': 'b', 'b': 'w'};
+
     // Check if it's a cannon, otherwise, return empty
     const typesFound = isCannon(item, boardConfig);
     if (typesFound){
         let allowedMoves: number[] = [];
         typesFound.forEach(ctype => {
-            const fromItem = parseInt(item.id);
             const ofst = cannonTypeOffsets[ctype];
 
             allowedMoves.push(...validateOffset(item, ofst, ctype, boardConfig));
         });
-
+        console.log(allowedMoves);
+        allowedMoves = allowedMoves.filter(position => {
+            console.log(position);
+            console.log(boardConfig);
+            console.log(boardConfig[position]);
+            console.log(boardConfig[position].value);
+            if (boardConfig[position].value === opponent[item.value]){return position}
+        });
 
         return allowedMoves;
     } else {
