@@ -132,7 +132,7 @@ export const getRetreatCells = (item: BoardCell, boardConfig: BoardCell[]) => {
         const stepBackCells = getStepCells(item, true, false);
         const freeMapping = stepBackCells.sort().map(cell => boardConfig[cell].value !== 'none' ? false : true);
 
-        return retreatCandidates.filter((cell, index) => freeMapping[index])
+        return retreatCandidates.filter((cell, index) => freeMapping[index] && boardConfig[cell].value !== item.value)
     } else {
         return []
     }
