@@ -362,6 +362,33 @@ func getCannonShootCells(item int, board []string, turnType string) []int {
 	}
 }
 
+func getCannonMoveCells(item int, board []string) []int {
+	var allowedMoves []int
+
+	cannonEdgeOffsets := map[int]int{1: 11,
+		2: 10,
+		3: 9,
+		4: 1}
+
+	fromItem := item
+	for _, v := range cannonEdgeOffsets {
+		ofst := v
+		if board[fromItem+ofst*-1] == board[item] && board[fromItem+ofst*-2] == board[item] {
+			if board[fromItem+ofst*-3] == "none" {
+				allowedMoves = append(allowedMoves, fromItem+ofst*-3)
+			}
+		}
+
+		if board[fromItem+ofst*1] == board[item] && board[fromItem+ofst*2] == board[item] {
+			if board[fromItem+ofst*3] == "none" {
+				allowedMoves = append(allowedMoves, fromItem+ofst*3)
+			}
+		}
+	}
+
+	return allowedMoves
+}
+
 func getNextMoves(item int, board []string, turnType string) []int {
 
 	var allowedMoves []int
@@ -381,6 +408,7 @@ func getNextMoves(item int, board []string, turnType string) []int {
 		allowedMoves = append(allowedMoves, getOccupiedSideCells(item, board)...)
 		allowedMoves = append(allowedMoves, getRetreatCells(item, board)...)
 		allowedMoves = append(allowedMoves, getCannonShootCells(item, board, turnType)...)
+		allowedMoves = append(allowedMoves, getCannonMoveCells(item, board)...)
 		return allowedMoves
 
 	}
@@ -398,15 +426,9 @@ func main() {
 	// evaluate(boardConfig.BoardConfig)
 	turnType := "p1"
 	// getNextStates(boardConfig.BoardConfig, turnType)
-	position := 71
+	position := 88
 	board := boardConfig.BoardConfig
-	board[60] = "none"
-	board[70] = "none"
-	board[80] = "none"
 
-	board[61] = "w"
-	board[71] = "w"
-	board[81] = "w"
 	fmt.Println(getNextMoves(position, board, turnType))
 }
 
