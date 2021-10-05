@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"server/boardConfig"
 	"sort"
 )
 
-func isCannon(pieceIndex int, pieceValue string, boardConfig []string) []int {
+func isCannon(pieceIndex int, boardConfig []string) []int {
 
 	ctypes := []int{}
 	cannonTypeOffsets := map[int]int{1: 11,
@@ -15,7 +16,7 @@ func isCannon(pieceIndex int, pieceValue string, boardConfig []string) []int {
 		4: 1} // offsets
 	for key := range cannonTypeOffsets {
 		ofst := cannonTypeOffsets[key]
-		if boardConfig[pieceIndex+ofst] == pieceValue && boardConfig[pieceIndex-ofst] == pieceValue {
+		if boardConfig[pieceIndex+ofst] == boardConfig[pieceIndex] && boardConfig[pieceIndex-ofst] == boardConfig[pieceIndex] {
 			ctypes = append(ctypes, key)
 		}
 	}
@@ -33,12 +34,12 @@ func evaluate(boardConfig []string) {
 	for i, piece := range boardConfig {
 		if piece == "w" {
 			whitePawns++
-			whiteCannonTypes := isCannon(i, piece, boardConfig)
+			whiteCannonTypes := isCannon(i, boardConfig)
 			whiteCannons += len(whiteCannonTypes)
 
 		} else if piece == "b" {
 			blackPawns++
-			blackCannonTypes := isCannon(i, piece, boardConfig)
+			blackCannonTypes := isCannon(i, boardConfig)
 			blackCannons += len(blackCannonTypes)
 		}
 	}
@@ -231,6 +232,136 @@ func getRetreatCells(item int, board []string) []int {
 	}
 }
 
+func calculateSide(fromItem int, newPosition int) string {
+	delta := (newPosition % 10) - (fromItem % 10)
+
+	var side string
+	if delta == 0 {
+		side = "center"
+	} else if delta > 0 {
+		side = "right"
+	} else {
+		side = "left"
+	}
+
+	return side
+}
+
+func filterOffsetPositions(
+	positions []int,
+	diagMap map[string]string,
+	coordinateRef []string,
+	fromItem int) []int {
+
+	var allowedPositions []int
+	for i, position := range positions {
+		vertical := coordinateRef[i]
+		horizontal := calculateSide(fromItem, position)
+		correct := diagMap[vertical]
+
+		if correct == horizontal && position >= 0 && position < 100 {
+			allowedPositions = append(allowedPositions, position)
+		}
+	}
+
+	return allowedPositions
+}
+
+func validateOffset(item int, ofst int, ctype int, board []string) []int {
+	fromItem := item
+	var newPositions []int
+
+	if !isCellOpponent(item, fromItem+ofst*-2, board) {
+		newPositions = append(newPositions, []int{fromItem + ofst*-3, fromItem + ofst*-4}...)
+	}
+
+	if !isCellOpponent(item, fromItem+ofst*2, board) {
+		newPositions = append(newPositions, []int{fromItem + ofst*3, fromItem + ofst*4}...)
+	}
+
+	var coordinateRef []string
+
+	for _, np := range newPositions {
+		if np < fromItem {
+			coordinateRef = append(coordinateRef, "top")
+		} else {
+			coordinateRef = append(coordinateRef, "bottom")
+		}
+	}
+
+	diagMap := make(map[string]string)
+	var allowedPositions []int
+
+	if ctype == 1 {
+		diagMap["bottom"] = "right"
+		diagMap["top"] = "left"
+
+		allowedPositions = filterOffsetPositions(newPositions, diagMap, coordinateRef, fromItem)
+
+		return allowedPositions
+	} else if ctype == 2 {
+
+		for _, position := range newPositions {
+			if position >= 0 && position <= 99 {
+				allowedPositions = append(allowedPositions, position)
+			}
+		}
+
+		return allowedPositions
+	} else if ctype == 3 {
+		diagMap["bottom"] = "left"
+		diagMap["top"] = "right"
+
+		allowedPositions = filterOffsetPositions(newPositions, diagMap, coordinateRef, fromItem)
+
+		return allowedPositions
+	} else {
+		itemRow := math.Floor(float64(fromItem) / 10.)
+
+		for _, position := range newPositions {
+			positionRow := math.Floor(float64(position) / 10.)
+			if positionRow == itemRow {
+				allowedPositions = append(allowedPositions, position)
+			}
+		}
+
+		return allowedPositions
+	}
+}
+
+func getCannonShootCells(item int, board []string, turnType string) []int {
+
+	if turnType == "placement_p1" || turnType == "placement_p2" || turnType == "start_game" {
+		return []int{}
+	}
+
+	cannonTypeOffsets := map[int]int{1: 11,
+		2: 10,
+		3: 9,
+		4: 1}
+
+	typesFound := isCannon(item, board)
+	if len(typesFound) > 0 {
+		var allowedMoves []int
+		for _, ctype := range typesFound {
+			ofst := cannonTypeOffsets[ctype]
+			allowedMoves = append(allowedMoves, validateOffset(item, ofst, ctype, board)...)
+		}
+
+		var filteredAllowedMoves []int
+
+		for _, position := range allowedMoves {
+			if isCellOpponent(item, position, board) {
+				filteredAllowedMoves = append(filteredAllowedMoves, position)
+			}
+		}
+
+		return filteredAllowedMoves
+	} else {
+		return []int{}
+	}
+}
+
 func getNextMoves(item int, board []string, turnType string) []int {
 
 	var allowedMoves []int
@@ -249,6 +380,7 @@ func getNextMoves(item int, board []string, turnType string) []int {
 		allowedMoves = append(allowedMoves, getAllowedStepCells(item, board)...)
 		allowedMoves = append(allowedMoves, getOccupiedSideCells(item, board)...)
 		allowedMoves = append(allowedMoves, getRetreatCells(item, board)...)
+		allowedMoves = append(allowedMoves, getCannonShootCells(item, board, turnType)...)
 		return allowedMoves
 
 	}
@@ -266,10 +398,15 @@ func main() {
 	// evaluate(boardConfig.BoardConfig)
 	turnType := "p1"
 	// getNextStates(boardConfig.BoardConfig, turnType)
-	position := 31
+	position := 71
 	board := boardConfig.BoardConfig
-	board[41] = "w"
-	board[13] = "none"
+	board[60] = "none"
+	board[70] = "none"
+	board[80] = "none"
+
+	board[61] = "w"
+	board[71] = "w"
+	board[81] = "w"
 	fmt.Println(getNextMoves(position, board, turnType))
 }
 
