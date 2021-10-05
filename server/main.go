@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"server/boardConfig"
+	"sort"
 )
 
 func isCannon(pieceIndex int, pieceValue string, boardConfig []string) []int {
@@ -92,7 +93,7 @@ func getStepCells(item int, backwards bool, double bool, board []string) []int {
 		if fromItem%10 == 0 {
 			return []int{fromItem + (10 * reverse), fromItem + (11*reverse + correction)}
 		} // First in row
-		if (fromItem+(1*reverse))%10 == 0 {
+		if (fromItem+1)%10 == 0 {
 			return []int{fromItem + (9*reverse - correction), fromItem + (10 * reverse)}
 		} // Last in row
 		return []int{fromItem + (9*reverse - correction), fromItem + (10 * reverse), fromItem + (11*reverse + correction)}
@@ -169,6 +170,67 @@ func getOccupiedSideCells(item int, board []string) []int {
 
 }
 
+func getOccupiedStepCells(
+	item int,
+	board []string,
+	backwards bool,
+	double bool,
+	byOpponent bool) []int {
+
+	occupiedStepCells := getStepCells(item, backwards, double, board)
+	var filteredOccupiedStepCells []int
+	for _, stepCell := range occupiedStepCells {
+		if byOpponent {
+			if isCellOpponent(item, stepCell, board) {
+				filteredOccupiedStepCells = append(filteredOccupiedStepCells, stepCell)
+			}
+		} else {
+			if board[stepCell] != "none" {
+				filteredOccupiedStepCells = append(filteredOccupiedStepCells, stepCell)
+			}
+		}
+	}
+
+	return filteredOccupiedStepCells
+}
+
+func getRetreatCells(item int, board []string) []int {
+
+	occupiedStepCellsByOpponent := getOccupiedStepCells(item, board, false, false, true)
+	occupiedSideCellsByOpponent := getOccupiedSideCells(item, board)
+
+	var occupiedAdjCellsByOpponent []int
+	occupiedAdjCellsByOpponent = append(occupiedAdjCellsByOpponent, occupiedStepCellsByOpponent...)
+	occupiedAdjCellsByOpponent = append(occupiedAdjCellsByOpponent, occupiedSideCellsByOpponent...)
+
+	if len(occupiedAdjCellsByOpponent) > 0 {
+		retreatCandidates := getStepCells(item, true, true, board)
+		stepBackCells := getStepCells(item, true, false, board)
+
+		sort.Ints(stepBackCells)
+		var mappedFreeMapping []bool
+
+		for _, cell := range stepBackCells {
+			if board[cell] != "none" || cell%10 == 0 || cell%9 == 0 {
+				mappedFreeMapping = append(mappedFreeMapping, false)
+			} else {
+				mappedFreeMapping = append(mappedFreeMapping, true)
+			}
+		}
+
+		var filteredRetreatCandidates []int
+		for i, cell := range retreatCandidates {
+			if mappedFreeMapping[i] && board[cell] != board[item] {
+				filteredRetreatCandidates = append(filteredRetreatCandidates, cell)
+			}
+		}
+
+		return filteredRetreatCandidates
+	} else {
+		return []int{}
+	}
+}
+
 func getNextMoves(item int, board []string, turnType string) []int {
 
 	var allowedMoves []int
@@ -186,6 +248,7 @@ func getNextMoves(item int, board []string, turnType string) []int {
 
 		allowedMoves = append(allowedMoves, getAllowedStepCells(item, board)...)
 		allowedMoves = append(allowedMoves, getOccupiedSideCells(item, board)...)
+		allowedMoves = append(allowedMoves, getRetreatCells(item, board)...)
 		return allowedMoves
 
 	}
@@ -205,7 +268,8 @@ func main() {
 	// getNextStates(boardConfig.BoardConfig, turnType)
 	position := 31
 	board := boardConfig.BoardConfig
-	// board[32] = "w"
+	board[41] = "w"
+	board[13] = "none"
 	fmt.Println(getNextMoves(position, board, turnType))
 }
 

@@ -54,7 +54,7 @@ export const getStepCells = (item: any, backwards: boolean = false, double: bool
     } else {
         if (fromItem >= 90) { return [] } // Off board
         if (fromItem % 10 === 0) {return [fromItem + (10 * reverse), fromItem + (11 * reverse + correction)]} // First in row
-        if ((fromItem + (1 * reverse)) % 10 === 0) {return [fromItem + (9 * reverse - correction), fromItem + (10 * reverse)]} // Last in row
+        if ((fromItem + 1) % 10 === 0) {return [fromItem + (9 * reverse - correction), fromItem + (10 * reverse)]} // Last in row
         return [fromItem + (9 * reverse - correction), fromItem + (10 * reverse), fromItem + (11 * reverse + correction)]
     }
 };
@@ -130,7 +130,13 @@ export const getRetreatCells = (item: BoardCell, boardConfig: BoardCell[]) => {
         // Target and intermediate spots are empty
         const retreatCandidates = getStepCells(item, true, true);
         const stepBackCells = getStepCells(item, true, false);
-        const freeMapping = stepBackCells.sort().map(cell => boardConfig[cell].value !== 'none' ? false : true);
+        const freeMapping = stepBackCells.sort().map(cell => {
+            if (boardConfig[cell].value !== 'none' || cell % 10 === 0 || cell % 9 === 0){
+                return false
+            } else {
+                return true
+            }
+        });
 
         return retreatCandidates.filter((cell, index) => freeMapping[index] && boardConfig[cell].value !== item.value)
     } else {
