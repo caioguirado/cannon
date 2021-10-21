@@ -5,6 +5,7 @@ import (
 	"math"
 	"server/boardConfig"
 	"sort"
+	"strings"
 )
 
 func isCannon(pieceIndex int, boardConfig []string) []int {
@@ -16,12 +17,15 @@ func isCannon(pieceIndex int, boardConfig []string) []int {
 		4: 1} // offsets
 	for key := range cannonTypeOffsets {
 		ofst := cannonTypeOffsets[key]
-		if boardConfig[pieceIndex+ofst] == boardConfig[pieceIndex] && boardConfig[pieceIndex-ofst] == boardConfig[pieceIndex] {
-			ctypes = append(ctypes, key)
+		newPlusOfst := pieceIndex + ofst
+		newMinusOfst := pieceIndex - ofst
+		if (newPlusOfst >= 0 && newPlusOfst < 100) && (newMinusOfst >= 0 && newMinusOfst < 100) {
+			if boardConfig[newPlusOfst] == boardConfig[pieceIndex] && boardConfig[newMinusOfst] == boardConfig[pieceIndex] {
+				ctypes = append(ctypes, key)
+			}
 		}
 	}
 	return ctypes
-
 }
 
 func evaluate(boardConfig []string) {
@@ -271,12 +275,32 @@ func validateOffset(item int, ofst int, ctype int, board []string) []int {
 	fromItem := item
 	var newPositions []int
 
-	if !isCellOpponent(item, fromItem+ofst*-2, board) {
-		newPositions = append(newPositions, []int{fromItem + ofst*-3, fromItem + ofst*-4}...)
+	ofstMinus2 := fromItem + ofst*-2
+	ofstMinus3 := fromItem + ofst*-3
+	ofstMinus4 := fromItem + ofst*-4
+	if ofstMinus2 >= 0 && ofstMinus2 < 100 {
+		if !isCellOpponent(item, ofstMinus2, board) {
+			if ofstMinus3 >= 0 && ofstMinus3 < 100 {
+				newPositions = append(newPositions, []int{ofstMinus3}...)
+			}
+			if ofstMinus4 >= 0 && ofstMinus4 < 100 {
+				newPositions = append(newPositions, []int{ofstMinus4}...)
+			}
+		}
 	}
 
-	if !isCellOpponent(item, fromItem+ofst*2, board) {
-		newPositions = append(newPositions, []int{fromItem + ofst*3, fromItem + ofst*4}...)
+	ofstPlus2 := fromItem + ofst*2
+	ofstPlus3 := fromItem + ofst*3
+	ofstPlus4 := fromItem + ofst*4
+	if ofstPlus2 >= 0 && ofstPlus2 < 100 {
+		if !isCellOpponent(item, ofstPlus2, board) {
+			if ofstPlus3 >= 0 && ofstPlus3 < 100 {
+				newPositions = append(newPositions, []int{ofstPlus3}...)
+			}
+			if ofstPlus4 >= 0 && ofstPlus4 < 100 {
+				newPositions = append(newPositions, []int{ofstPlus4}...)
+			}
+		}
 	}
 
 	var coordinateRef []string
@@ -373,15 +397,26 @@ func getCannonMoveCells(item int, board []string) []int {
 	fromItem := item
 	for _, v := range cannonEdgeOffsets {
 		ofst := v
-		if board[fromItem+ofst*-1] == board[item] && board[fromItem+ofst*-2] == board[item] {
-			if board[fromItem+ofst*-3] == "none" {
-				allowedMoves = append(allowedMoves, fromItem+ofst*-3)
+		newPlusOfst1 := fromItem + ofst*1
+		newPlusOfst2 := fromItem + ofst*2
+		newPlusOfst3 := fromItem + ofst*3
+		newMinusOfst1 := fromItem + ofst*-1
+		newMinusOfst2 := fromItem + ofst*-2
+		newMinusOfst3 := fromItem + ofst*-3
+
+		if (newMinusOfst1 >= 0 && newMinusOfst1 < 100) && (newMinusOfst2 >= 0 && newMinusOfst2 < 100) {
+			if board[newMinusOfst1] == board[item] && board[newMinusOfst2] == board[item] {
+				if (newMinusOfst3 >= 0 && newMinusOfst3 < 100) && board[newMinusOfst3] == "none" {
+					allowedMoves = append(allowedMoves, fromItem+ofst*-3)
+				}
 			}
 		}
 
-		if board[fromItem+ofst*1] == board[item] && board[fromItem+ofst*2] == board[item] {
-			if board[fromItem+ofst*3] == "none" {
-				allowedMoves = append(allowedMoves, fromItem+ofst*3)
+		if (newPlusOfst1 >= 0 && newPlusOfst1 < 100) && (newPlusOfst2 >= 0 && newPlusOfst2 < 100) {
+			if board[newPlusOfst1] == board[item] && board[newPlusOfst2] == board[item] {
+				if (newPlusOfst3 >= 0 && newPlusOfst3 < 100) && board[newPlusOfst3] == "none" {
+					allowedMoves = append(allowedMoves, fromItem+ofst*3)
+				}
 			}
 		}
 	}
@@ -403,7 +438,15 @@ func getNextMoves(item int, board []string, turnType string) []int {
 		return allowedMoves
 
 	} else {
-
+		if board[item] == "none" {
+			return allowedMoves
+		}
+		if strings.Contains(board[item], "w") && !strings.Contains(turnType, "p1") {
+			return allowedMoves
+		}
+		if strings.Contains(board[item], "b") && !strings.Contains(turnType, "p2") {
+			return allowedMoves
+		}
 		allowedMoves = append(allowedMoves, getAllowedStepCells(item, board)...)
 		allowedMoves = append(allowedMoves, getOccupiedSideCells(item, board)...)
 		allowedMoves = append(allowedMoves, getRetreatCells(item, board)...)
@@ -414,22 +457,86 @@ func getNextMoves(item int, board []string, turnType string) []int {
 	}
 }
 
-// func getNextStates(board []string, turnType string){
-// 	var nextStates [][]string
-// 	for i, piece := range board {
-// 		// get piece's next positions
-// 		// move piece
-// 	}
-// }
+func isIn(item int, iterable []int) bool {
+	for _, it := range iterable {
+		if it == item {
+			return true
+		}
+	}
+	return false
+}
+
+func movePiece(item int,
+	board []string,
+	toPosition int,
+	allowedPositions []int,
+	allowedShots []int) []string {
+
+	boardCopy := make([]string, len(board))
+	copy(boardCopy, board)
+
+	if isIn(toPosition, allowedShots) {
+		// Shoot cell
+		boardCopy[toPosition] = "none"
+	}
+	if isIn(toPosition, allowedPositions) {
+		// Move cell
+		itemValue := board[item]
+		boardCopy[toPosition] = itemValue
+		boardCopy[item] = "none"
+	}
+
+	return boardCopy
+}
+
+func getNextStates(board []string, turnType string) [][]string {
+	var nextStates [][]string
+
+	if strings.Contains(turnType, "placement") {
+		plc2piece := map[string]string{"placement_p1": "tw", "placement_p2": "tb"}
+		possibleMoves := getNextMoves(0, board, turnType)
+
+		fmt.Println("Next states: ", possibleMoves)
+
+		for _, toPosition := range possibleMoves {
+			boardCopy := make([]string, len(board))
+			copy(boardCopy, board)
+			boardCopy[toPosition] = plc2piece[turnType]
+			nextStates = append(nextStates, boardCopy)
+		}
+		return nextStates
+	}
+
+	for i, _ := range board {
+
+		// get piece's next positions
+		possibleMoves := getNextMoves(i, board, turnType)
+		possibleShots := getCannonShootCells(i, board, turnType)
+		fmt.Println("Next states for: ", i, possibleMoves)
+
+		for _, toPosition := range possibleMoves {
+			// move piece
+			newState := movePiece(i, board, toPosition, possibleMoves, possibleShots)
+			nextStates = append(nextStates, newState)
+			evaluate(newState)
+			// break
+		}
+		// break
+	}
+
+	return nextStates
+}
 
 func main() {
-	// evaluate(boardConfig.BoardConfig)
-	turnType := "p1"
+	evaluate(boardConfig.BoardConfig)
+	turnType := "placement_p1"
 	// getNextStates(boardConfig.BoardConfig, turnType)
-	position := 88
+	// position := 88
 	board := boardConfig.BoardConfig
 
-	fmt.Println(getNextMoves(position, board, turnType))
+	// fmt.Println(getNextMoves(position, board, turnType))
+	fmt.Println(getNextStates(board, turnType))
+	// getNextStates(board, turnType)
 }
 
 // ------------------------------------------------------
