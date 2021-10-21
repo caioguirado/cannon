@@ -28,7 +28,7 @@ func isCannon(pieceIndex int, boardConfig []string) []int {
 	return ctypes
 }
 
-func evaluate(boardConfig []string) {
+func evaluate(boardConfig []string) int {
 
 	whitePawns := 0
 	blackPawns := 0
@@ -48,7 +48,14 @@ func evaluate(boardConfig []string) {
 		}
 	}
 
-	fmt.Println(whitePawns, blackPawns, whiteCannons, blackCannons)
+	featureValues := []int{whitePawns, blackPawns, whiteCannons, blackCannons}
+
+	score := 0
+	for _, fv := range featureValues {
+		score += fv
+	}
+
+	return score
 }
 
 func sliceRange(min int, max int) []int {
@@ -466,6 +473,15 @@ func isIn(item int, iterable []int) bool {
 	return false
 }
 
+func isInString(item string, iterable []string) bool {
+	for _, it := range iterable {
+		if it == item {
+			return true
+		}
+	}
+	return false
+}
+
 func movePiece(item int,
 	board []string,
 	toPosition int,
@@ -478,8 +494,7 @@ func movePiece(item int,
 	if isIn(toPosition, allowedShots) {
 		// Shoot cell
 		boardCopy[toPosition] = "none"
-	}
-	if isIn(toPosition, allowedPositions) {
+	} else if isIn(toPosition, allowedPositions) {
 		// Move cell
 		itemValue := board[item]
 		boardCopy[toPosition] = itemValue
@@ -489,36 +504,57 @@ func movePiece(item int,
 	return boardCopy
 }
 
-func getNextStates(board []string, turnType string) [][]string {
-	var nextStates [][]string
+type state struct {
+	board    []string
+	turnType string
+}
 
-	if strings.Contains(turnType, "placement") {
+func getNextStates(s state) []state {
+	var nextStates []state
+
+	nextTurnType := ""
+	nextTurnTypeMap := map[string]string{"start_game": "placement_p1",
+		"placement_p1": "placement_p2",
+		"placement_p2": "p1",
+		"p1":           "p2",
+		"p2":           "p1",
+	}
+
+	if strings.Contains(s.turnType, "placement") {
 		plc2piece := map[string]string{"placement_p1": "tw", "placement_p2": "tb"}
-		possibleMoves := getNextMoves(0, board, turnType)
+		possibleMoves := getNextMoves(0, s.board, s.turnType)
 
 		fmt.Println("Next states: ", possibleMoves)
 
 		for _, toPosition := range possibleMoves {
-			boardCopy := make([]string, len(board))
-			copy(boardCopy, board)
-			boardCopy[toPosition] = plc2piece[turnType]
-			nextStates = append(nextStates, boardCopy)
+			boardCopy := make([]string, len(s.board))
+			copy(boardCopy, s.board)
+			boardCopy[toPosition] = plc2piece[s.turnType]
+			nextTurnType = nextTurnTypeMap[s.turnType]
+			nextState := state{board: boardCopy, turnType: nextTurnType}
+			nextStates = append(nextStates, nextState)
 		}
 		return nextStates
 	}
 
-	for i, _ := range board {
+	for i, _ := range s.board {
 
 		// get piece's next positions
-		possibleMoves := getNextMoves(i, board, turnType)
-		possibleShots := getCannonShootCells(i, board, turnType)
-		fmt.Println("Next states for: ", i, possibleMoves)
+		possibleMoves := getNextMoves(i, s.board, s.turnType)
+		possibleShots := getCannonShootCells(i, s.board, s.turnType)
+		// fmt.Println("Next states for: ", i, possibleMoves)
 
 		for _, toPosition := range possibleMoves {
 			// move piece
-			newState := movePiece(i, board, toPosition, possibleMoves, possibleShots)
-			nextStates = append(nextStates, newState)
-			evaluate(newState)
+			newBoard := movePiece(i, s.board, toPosition, possibleMoves, possibleShots)
+			if !isInString("tw", newBoard) || !isInString("tb", newBoard) {
+				nextTurnType = "terminal"
+			} else {
+				nextTurnType = nextTurnTypeMap[s.turnType]
+			}
+			nextState := state{board: newBoard, turnType: nextTurnType}
+			nextStates = append(nextStates, nextState)
+			evaluate(nextState.board)
 			// break
 		}
 		// break
@@ -527,15 +563,43 @@ func getNextStates(board []string, turnType string) [][]string {
 	return nextStates
 }
 
+func alphaBeta(s state, alpha int, beta int, depth int) int {
+	if s.turnType == "terminal" || depth == 0 {
+		return evaluate(s.board)
+	}
+	nextStates := getNextStates(s)
+	score := int(-math.Inf(-1))
+
+	for _, successorState := range nextStates {
+		value := -alphaBeta(successorState, -beta, -alpha, depth-1)
+		if value > score {
+			score = value
+		}
+		if score > alpha {
+			alpha = score
+		}
+		if score > beta {
+			break
+		}
+	}
+
+	return score
+}
+
 func main() {
-	evaluate(boardConfig.BoardConfig)
-	turnType := "placement_p1"
+	// fmt.Println(evaluate(boardConfig.BoardConfig))
+	initialBoard := boardConfig.BoardConfig
+	initialBoard[4] = "tb"
+	initialBoard[93] = "tw"
+	initialState := state{initialBoard, "p1"}
+	fmt.Println(alphaBeta(initialState, -1000, 1000, 2))
+	// turnType := "placement_p1"
 	// getNextStates(boardConfig.BoardConfig, turnType)
 	// position := 88
-	board := boardConfig.BoardConfig
+	// board := boardConfig.BoardConfig
 
 	// fmt.Println(getNextMoves(position, board, turnType))
-	fmt.Println(getNextStates(board, turnType))
+	// fmt.Println(getNextStates(state{board, turnType}))
 	// getNextStates(board, turnType)
 }
 
