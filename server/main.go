@@ -3,9 +3,11 @@ package main
 import (
 	"fmt"
 	"math"
+	"math/rand"
 	"server/boardConfig"
 	"sort"
 	"strings"
+	"time"
 )
 
 func isCannon(pieceIndex int, boardConfig []string) []int {
@@ -55,6 +57,8 @@ func evaluate(boardConfig []string) int {
 		score += fv
 	}
 
+	score = whitePawns - blackPawns
+	// fmt.Println(score)
 	return score
 }
 
@@ -232,8 +236,10 @@ func getRetreatCells(item int, board []string) []int {
 
 		var filteredRetreatCandidates []int
 		for i, cell := range retreatCandidates {
-			if mappedFreeMapping[i] && board[cell] != board[item] {
-				filteredRetreatCandidates = append(filteredRetreatCandidates, cell)
+			if cell >= 0 && cell < 100 {
+				if mappedFreeMapping[i] && board[cell] != board[item] {
+					filteredRetreatCandidates = append(filteredRetreatCandidates, cell)
+				}
 			}
 		}
 
@@ -445,7 +451,7 @@ func getNextMoves(item int, board []string, turnType string) []int {
 		return allowedMoves
 
 	} else {
-		if board[item] == "none" {
+		if board[item] == "none" || strings.Contains(board[item], "t") {
 			return allowedMoves
 		}
 		if strings.Contains(board[item], "w") && !strings.Contains(turnType, "p1") {
@@ -509,8 +515,32 @@ type state struct {
 	turnType string
 }
 
-func getNextStates(s state) []state {
-	var nextStates []state
+type move struct {
+	fromPosition int
+	toPosition   int
+	moveType     string
+}
+
+type stateTransition struct {
+	fromState state
+	move      move
+	toState   state
+}
+
+func getMoveType(toPosition int, possibleShots []int, turnType string) string {
+
+	if strings.Contains(turnType, "placement") {
+		return "placement"
+	} else if isIn(toPosition, possibleShots) {
+		return "shot"
+	} else {
+		return "move"
+	}
+
+}
+
+func getNextStates(s state) []stateTransition {
+	var nextStates []stateTransition
 
 	nextTurnType := ""
 	nextTurnTypeMap := map[string]string{"start_game": "placement_p1",
@@ -524,15 +554,17 @@ func getNextStates(s state) []state {
 		plc2piece := map[string]string{"placement_p1": "tw", "placement_p2": "tb"}
 		possibleMoves := getNextMoves(0, s.board, s.turnType)
 
-		fmt.Println("Next states: ", possibleMoves)
-
 		for _, toPosition := range possibleMoves {
 			boardCopy := make([]string, len(s.board))
 			copy(boardCopy, s.board)
 			boardCopy[toPosition] = plc2piece[s.turnType]
 			nextTurnType = nextTurnTypeMap[s.turnType]
 			nextState := state{board: boardCopy, turnType: nextTurnType}
-			nextStates = append(nextStates, nextState)
+			move := move{fromPosition: -1, toPosition: toPosition, moveType: ""}
+			nextStateTransition := stateTransition{fromState: s,
+				move:    move,
+				toState: nextState}
+			nextStates = append(nextStates, nextStateTransition)
 		}
 		return nextStates
 	}
@@ -542,7 +574,6 @@ func getNextStates(s state) []state {
 		// get piece's next positions
 		possibleMoves := getNextMoves(i, s.board, s.turnType)
 		possibleShots := getCannonShootCells(i, s.board, s.turnType)
-		// fmt.Println("Next states for: ", i, possibleMoves)
 
 		for _, toPosition := range possibleMoves {
 			// move piece
@@ -553,27 +584,106 @@ func getNextStates(s state) []state {
 				nextTurnType = nextTurnTypeMap[s.turnType]
 			}
 			nextState := state{board: newBoard, turnType: nextTurnType}
-			nextStates = append(nextStates, nextState)
-			evaluate(nextState.board)
-			// break
+			moveType := getMoveType(toPosition, possibleShots, s.turnType)
+			move := move{fromPosition: i, toPosition: toPosition, moveType: moveType}
+			nextStateTransition := stateTransition{fromState: s,
+				move:    move,
+				toState: nextState}
+			nextStates = append(nextStates, nextStateTransition)
 		}
-		// break
 	}
 
 	return nextStates
 }
 
-func alphaBeta(s state, alpha int, beta int, depth int) int {
-	if s.turnType == "terminal" || depth == 0 {
-		return evaluate(s.board)
-	}
-	nextStates := getNextStates(s)
-	score := int(-math.Inf(-1))
+func zobristHash(board []string) int {
+	n := 1000 // rand range
+	cells := 100
+	// positions vs. piecetype
+	// rows = tw, tb, w, b
+	table := [][]int{rand.Perm(n)[:cells],
+		rand.Perm(n)[:cells],
+		rand.Perm(n)[:cells],
+		rand.Perm(n)[:cells]}
 
-	for _, successorState := range nextStates {
-		value := -alphaBeta(successorState, -beta, -alpha, depth-1)
+	piece2row := map[string]int{"tw": 0, "tb": 1, "w": 2, "b": 3}
+
+	hash := 0
+	for i, piece := range board {
+		if piece != "none" {
+			hash ^= table[piece2row[piece]][i]
+		}
+	}
+	return hash
+}
+
+type ttEntry struct {
+	depth    int
+	flag     string
+	value    int
+	bestMove move
+}
+
+func moveOrder(transitions []stateTransition) []stateTransition {
+
+	// insert other strategies. Capture moves first, etc
+	sort.SliceStable(transitions, func(i, j int) bool {
+		return evaluate(transitions[i].toState.board) < evaluate(transitions[j].toState.board)
+	})
+
+	return transitions
+}
+
+type searchResult struct {
+	value    int
+	bestMove move
+}
+
+func alphaBeta(s state, alpha int, beta int, depth int, tt *map[int]ttEntry) searchResult {
+
+	olda := alpha
+	// fmt.Println("Depth: ", depth, *tt)
+	// check value in tt
+	var n ttEntry
+	stateHash := zobristHash(s.board)
+	if val, ok := (*tt)[stateHash]; ok {
+		n = val
+		fmt.Println("FOUND IN TT")
+	} else {
+		n = ttEntry{depth: -1, flag: "", value: int(math.Inf(-1)), bestMove: move{}}
+	}
+
+	if n.depth >= depth {
+		if n.flag == "exact" {
+			// return n.value
+			return searchResult{value: n.value, bestMove: n.bestMove}
+		} else if n.flag == "lower_bound" {
+			alpha = int(math.Max(float64(alpha), float64(n.value)))
+		} else if n.flag == "upper_bound" {
+			beta = int(math.Min(float64(beta), float64(n.value)))
+		}
+
+		if alpha >= beta {
+			// return n.value
+			return searchResult{value: n.value, bestMove: n.bestMove}
+		}
+	}
+
+	if s.turnType == "terminal" || depth == 0 {
+		// return evaluate(s.board)
+		return searchResult{value: evaluate(s.board), bestMove: move{}}
+	}
+
+	stateTransitions := getNextStates(s)
+	orderedStateTransitions := moveOrder(stateTransitions)
+
+	score := int(-math.Inf(-1))
+	var bestMove move
+	for _, stateTransition := range orderedStateTransitions {
+		value := -alphaBeta(stateTransition.toState, -beta, -alpha, depth-1, tt).value
 		if value > score {
 			score = value
+			bestMove = stateTransition.move
 		}
 		if score > alpha {
 			alpha = score
@@ -583,16 +693,59 @@ func alphaBeta(s state, alpha int, beta int, depth int) int {
 		}
 	}
 
-	return score
+	flag := ""
+	if score <= olda {
+		flag = "upper_bound"
+	} else if score >= beta {
+		flag = "lower_bound"
+	} else {
+		flag = "exact"
+	}
+
+	newTTEntry := ttEntry{depth: -1,
+		flag:     flag,
+		value:    score,
+		bestMove: bestMove}
+	(*tt)[stateHash] = newTTEntry
+
+	return searchResult{value: alpha, bestMove: bestMove}
+}
+
+func chooseMove(s state, maxDepth int) move {
+
+	maxTime := 15000 // 15s (milliseconds)
+	startTime := time.Now().UnixMilli()
+	outOfTime := false
+	tt := map[int]ttEntry{}
+	bestMove := move{}
+	for i := 0; i <= maxDepth && !outOfTime; i += 1 { // && !outOfTime()
+		bestMove = alphaBeta(s, int(math.Inf(-1)), int(math.Inf(1)), i, &tt).bestMove
+		outOfTime = int(time.Now().UnixMilli()-startTime) > maxTime
+		if outOfTime {
+			fmt.Println("Out of Time: depth = ", i)
+		}
+	}
+
+	return bestMove
 }
 
 func main() {
 	// fmt.Println(evaluate(boardConfig.BoardConfig))
+
 	initialBoard := boardConfig.BoardConfig
 	initialBoard[4] = "tb"
 	initialBoard[93] = "tw"
 	initialState := state{initialBoard, "p1"}
-	fmt.Println(alphaBeta(initialState, -1000, 1000, 2))
+	// fmt.Println(alphaBeta(initialState, -1000, 1000, 2))
+
+	// fmt.Println(alphaBeta(initialState,
+	// 	int(math.Inf(-1)),
+	// 	int(math.Inf(1)),
+	// 	3,
+	// 	&map[int]ttEntry{}))
+
+	fmt.Println(chooseMove(initialState, 1000))
+
 	// turnType := "placement_p1"
 	// getNextStates(boardConfig.BoardConfig, turnType)
 	// position := 88
