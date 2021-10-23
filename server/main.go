@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"math"
 	"math/rand"
-	"server/boardConfig"
+	"net/http"
 	"sort"
 	"strings"
 	"time"
@@ -511,14 +513,14 @@ func movePiece(item int,
 }
 
 type state struct {
-	board    []string
-	turnType string
+	Board    []string `json:"board"`
+	TurnType string   `json:"turnType"`
 }
 
 type move struct {
-	fromPosition int
-	toPosition   int
-	moveType     string
+	FromPosition int    `json:"fromPosition"`
+	ToPosition   int    `json:"toPosition"`
+	MoveType     string `json:"moveType"`
 }
 
 type stateTransition struct {
@@ -550,17 +552,17 @@ func getNextStates(s state) []stateTransition {
 		"p2":           "p1",
 	}
 
-	if strings.Contains(s.turnType, "placement") {
+	if strings.Contains(s.TurnType, "placement") {
 		plc2piece := map[string]string{"placement_p1": "tw", "placement_p2": "tb"}
-		possibleMoves := getNextMoves(0, s.board, s.turnType)
+		possibleMoves := getNextMoves(0, s.Board, s.TurnType)
 
 		for _, toPosition := range possibleMoves {
-			boardCopy := make([]string, len(s.board))
-			copy(boardCopy, s.board)
-			boardCopy[toPosition] = plc2piece[s.turnType]
-			nextTurnType = nextTurnTypeMap[s.turnType]
-			nextState := state{board: boardCopy, turnType: nextTurnType}
-			move := move{fromPosition: -1, toPosition: toPosition, moveType: ""}
+			boardCopy := make([]string, len(s.Board))
+			copy(boardCopy, s.Board)
+			boardCopy[toPosition] = plc2piece[s.TurnType]
+			nextTurnType = nextTurnTypeMap[s.TurnType]
+			nextState := state{Board: boardCopy, TurnType: nextTurnType}
+			move := move{FromPosition: -1, ToPosition: toPosition, MoveType: "placement"}
 			nextStateTransition := stateTransition{fromState: s,
 				move:    move,
 				toState: nextState}
@@ -569,23 +571,23 @@ func getNextStates(s state) []stateTransition {
 		return nextStates
 	}
 
-	for i, _ := range s.board {
+	for i, _ := range s.Board {
 
 		// get piece's next positions
-		possibleMoves := getNextMoves(i, s.board, s.turnType)
-		possibleShots := getCannonShootCells(i, s.board, s.turnType)
+		possibleMoves := getNextMoves(i, s.Board, s.TurnType)
+		possibleShots := getCannonShootCells(i, s.Board, s.TurnType)
 
 		for _, toPosition := range possibleMoves {
 			// move piece
-			newBoard := movePiece(i, s.board, toPosition, possibleMoves, possibleShots)
-			if !isInString("tw", newBoard) || !isInString("tb", newBoard) {
+			newBoard := movePiece(i, s.Board, toPosition, possibleMoves, possibleShots)
+			if (!isInString("tw", newBoard) || !isInString("tb", newBoard)) && !strings.Contains(s.TurnType, "placement") {
 				nextTurnType = "terminal"
 			} else {
-				nextTurnType = nextTurnTypeMap[s.turnType]
+				nextTurnType = nextTurnTypeMap[s.TurnType]
 			}
-			nextState := state{board: newBoard, turnType: nextTurnType}
-			moveType := getMoveType(toPosition, possibleShots, s.turnType)
-			move := move{fromPosition: i, toPosition: toPosition, moveType: moveType}
+			nextState := state{Board: newBoard, TurnType: nextTurnType}
+			moveType := getMoveType(toPosition, possibleShots, s.TurnType)
+			move := move{FromPosition: i, ToPosition: toPosition, MoveType: moveType}
 			nextStateTransition := stateTransition{fromState: s,
 				move:    move,
 				toState: nextState}
@@ -628,7 +630,7 @@ func moveOrder(transitions []stateTransition) []stateTransition {
 
 	// insert other strategies. Capture moves first, etc
 	sort.SliceStable(transitions, func(i, j int) bool {
-		return evaluate(transitions[i].toState.board) < evaluate(transitions[j].toState.board)
+		return evaluate(transitions[i].toState.Board) < evaluate(transitions[j].toState.Board)
 	})
 
 	return transitions
@@ -640,15 +642,15 @@ type searchResult struct {
 }
 
 func alphaBeta(s state, alpha int, beta int, depth int, tt *map[int]ttEntry) searchResult {
-
+	stateCount += 1
 	olda := alpha
 	// fmt.Println("Depth: ", depth, *tt)
 	// check value in tt
 	var n ttEntry
-	stateHash := zobristHash(s.board)
+	stateHash := zobristHash(s.Board)
 	if val, ok := (*tt)[stateHash]; ok {
 		n = val
-		fmt.Println("FOUND IN TT")
+		// fmt.Println("FOUND IN TT")
 	} else {
 		n = ttEntry{depth: -1, flag: "", value: int(math.Inf(-1)), bestMove: move{}}
 	}
@@ -669,9 +671,10 @@ func alphaBeta(s state, alpha int, beta int, depth int, tt *map[int]ttEntry) sea
 		}
 	}
 
-	if s.turnType == "terminal" || depth == 0 {
-		// return evaluate(s.board)
-		return searchResult{value: evaluate(s.board), bestMove: move{}}
+	if s.TurnType == "terminal" || depth == 0 {
+		// return evaluate(s.Board)
+		fmt.Println(s.TurnType)
+		return searchResult{value: evaluate(s.Board), bestMove: move{}}
 	}
 
 	stateTransitions := getNextStates(s)
@@ -711,73 +714,75 @@ func alphaBeta(s state, alpha int, beta int, depth int, tt *map[int]ttEntry) sea
 	return searchResult{value: alpha, bestMove: bestMove}
 }
 
+var stateCount int = 0
+
 func chooseMove(s state, maxDepth int) move {
+
+	if strings.Contains(s.TurnType, "placement") {
+		stateTransitions := getNextStates(s)
+		s := rand.NewSource(time.Now().Unix())
+		r := rand.New(s) // initialize local pseudorandom generator
+		randomInt := r.Intn(len(stateTransitions))
+		return stateTransitions[randomInt].move
+	}
 
 	maxTime := 15000 // 15s (milliseconds)
 	startTime := time.Now().UnixMilli()
 	outOfTime := false
 	tt := map[int]ttEntry{}
 	bestMove := move{}
-	for i := 0; i <= maxDepth && !outOfTime; i += 1 { // && !outOfTime()
+	for i := 0; i <= maxDepth && !outOfTime; i += 1 {
 		bestMove = alphaBeta(s, int(math.Inf(-1)), int(math.Inf(1)), i, &tt).bestMove
 		outOfTime = int(time.Now().UnixMilli()-startTime) > maxTime
 		if outOfTime {
-			fmt.Println("Out of Time: depth = ", i)
+			fmt.Println("Out of Time: depth = ", i, stateCount)
 		}
 	}
 
 	return bestMove
 }
 
+func sendMove(w http.ResponseWriter, r *http.Request) {
+
+	var receivedState state
+	if r.Method == "POST" {
+		err := json.NewDecoder(r.Body).Decode(&receivedState)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		// move := chooseMove(receivedState, 1000)
+		move := move{FromPosition: 10, ToPosition: 20, MoveType: "move"}
+		json.NewEncoder(w).Encode(move)
+		fmt.Println("Endpoint Hit: sendMove")
+	}
+}
+
+func setup() {
+	http.HandleFunc("/move", sendMove)
+	fmt.Println("Serving...")
+	log.Fatal(http.ListenAndServe(":10000", nil))
+}
+
 func main() {
-	// fmt.Println(evaluate(boardConfig.BoardConfig))
+	// initialBoard := boardConfig.BoardConfig
+	// // initialBoard[4] = "tb"
+	// // initialBoard[93] = "tw"
+	// initialState := state{initialBoard, "placement_p1"}
 
-	initialBoard := boardConfig.BoardConfig
-	initialBoard[4] = "tb"
-	initialBoard[93] = "tw"
-	initialState := state{initialBoard, "p1"}
-	// fmt.Println(alphaBeta(initialState, -1000, 1000, 2))
+	// fmt.Println(chooseMove(initialState, 1000))
 
-	// fmt.Println(alphaBeta(initialState,
-	// 	int(math.Inf(-1)),
-	// 	int(math.Inf(1)),
-	// 	3,
-	// 	&map[int]ttEntry{}))
-
-	fmt.Println(chooseMove(initialState, 1000))
-
-	// turnType := "placement_p1"
-	// getNextStates(boardConfig.BoardConfig, turnType)
-	// position := 88
-	// board := boardConfig.BoardConfig
-
-	// fmt.Println(getNextMoves(position, board, turnType))
-	// fmt.Println(getNextStates(state{board, turnType}))
-	// getNextStates(board, turnType)
+	setup()
 }
 
 // ------------------------------------------------------
 
 // import (
-// 	"encoding/json"
-// 	"fmt"
-// 	"log"
-// 	"net/http"
+
 // )
 
-// func homePage(w http.ResponseWriter, r *http.Request) {
-// 	// fmt.Fprintf(w, "Welcome to the HomePage!")
-// 	json.NewEncoder(w).Encode([]string{"one", "two", "three"})
-// 	fmt.Println("Endpoint Hit: homePage")
-// }
-
-// func setup() {
-// 	http.HandleFunc("/", homePage)
-// 	log.Fatal(http.ListenAndServe(":10000", nil))
-// }
-
 // func main() {
-// 	setup()
+//
 // }
 
 // -------------------
