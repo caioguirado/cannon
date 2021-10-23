@@ -4,5 +4,6 @@ export enum ActionType {
     DESELECT_CELL = 'deselect_cell',
     START_GAME = 'start_game',
     PLACE_TOWER = 'place_tower',
-    SHOOT_CELL = 'shoot_cell'
+    SHOOT_CELL = 'shoot_cell',
+    AI = "ai_move"
 }

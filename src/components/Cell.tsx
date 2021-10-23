@@ -7,7 +7,7 @@ import {useActions} from '../hooks/use-actions';
 import {useDrag, useDrop, DragPreviewImage} from 'react-dnd';
 import { useTypedSelector } from '../hooks/use-typed-selector';
 import { TurnType } from '../state/reducers/gameReducer';
-
+import {store} from '../state/store'
 
 type CellProps = {
     id: string;
@@ -18,11 +18,22 @@ type CellProps = {
 
 export const Cell = (props: CellProps) => {
 
-    const {moveCell, deSelectCell, placeTower, shootCell} = useActions();
+    const {moveCell, deSelectCell, placeTower, shootCell, AIMakeMove} = useActions();
 
     const {isDragging, allowedPositions, allowedShots, turnType} = useTypedSelector(({game: {board: {isDragging, allowedPositions, allowedShots}, turnType}}) => {
         return {isDragging, allowedPositions, allowedShots, turnType}
     });
+
+    let state: any;
+    store.subscribe(() => {
+        state = store.getState();
+    });
+    
+
+    const AI = () => {
+        const formattedBoard = state.game.board.boardConfig.map((item: any) => item.value);
+        AIMakeMove(formattedBoard, state.game.turnType);
+    }
 
     const [collectedProps, drop] = useDrop({
         accept: 'piece',
@@ -42,6 +53,7 @@ export const Cell = (props: CellProps) => {
             if (!item.id){
                 placeTower(item, props.id);
                 deSelectCell();
+                AI();
                 return
             }
             
@@ -53,6 +65,8 @@ export const Cell = (props: CellProps) => {
                 moveCell(item.id, props.id, item.value);
                 deSelectCell();
             }
+
+            AI();
         }
     });
 

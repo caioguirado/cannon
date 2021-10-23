@@ -726,7 +726,7 @@ func chooseMove(s state, maxDepth int) move {
 		return stateTransitions[randomInt].move
 	}
 
-	maxTime := 15000 // 15s (milliseconds)
+	maxTime := 5 // 15s (milliseconds)
 	startTime := time.Now().UnixMilli()
 	outOfTime := false
 	tt := map[int]ttEntry{}
@@ -744,6 +744,10 @@ func chooseMove(s state, maxDepth int) move {
 
 func sendMove(w http.ResponseWriter, r *http.Request) {
 
+	w.Header().Set("Content-Type", "text/html; charset=ascii")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type,access-control-allow-origin, access-control-allow-headers")
+
 	var receivedState state
 	if r.Method == "POST" {
 		err := json.NewDecoder(r.Body).Decode(&receivedState)
@@ -751,8 +755,8 @@ func sendMove(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		// move := chooseMove(receivedState, 1000)
-		move := move{FromPosition: 10, ToPosition: 20, MoveType: "move"}
+		move := chooseMove(receivedState, 20)
+		// move := move{FromPosition: 31, ToPosition: 41, MoveType: "move"}
 		json.NewEncoder(w).Encode(move)
 		fmt.Println("Endpoint Hit: sendMove")
 	}

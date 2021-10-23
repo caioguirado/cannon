@@ -1,3 +1,5 @@
+import axios from 'axios';
+import {store} from '../store'
 import { ActionType } from "../action-types";
 import {Action, MoveCellAction} from '../actions';
 
@@ -52,5 +54,35 @@ export const shootCell = (item: any) => {
         payload: {
             item
         }
+    }
+};
+
+export const AIMakeMove = (board: any, turnType: any) => {
+    return (dispatch: any) => {
+        // const state = store.getState();
+        // console.log(state);
+        axios.post('http://localhost:10000/move', {
+            "board": board,
+            "turnType": turnType
+        })
+            .then(r => {
+                const move : any = r.data;
+                console.log('AI Answered move: ', move)
+                if (move['moveType'] == 'move'){
+                    dispatch(moveCell(move['fromPosition'].toString(), 
+                                        move['toPosition'].toString(), 
+                                        ""));
+                } else if (move['moveType'] == 'placement') {
+                    dispatch(placeTower('tb', move['toPosition']));
+                } else if (move['moveType'] == 'shot'){
+                    dispatch(shootCell(move['toPosition']));
+                } else {
+                    return
+                }
+            }).catch(err => {
+                const errorMessage = err.message;
+                console.log(errorMessage);
+            })
+        
     }
 };

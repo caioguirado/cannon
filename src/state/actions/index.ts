@@ -42,9 +42,17 @@ export interface ShootCellAction {
     }
 };
 
+export interface AIMoveAction {
+    type: ActionType.AI,
+    payload: {
+        
+    }
+};
+
 export type Action = MoveCellAction 
                     | DragCellAction 
                     | DeSelectCellAction
                     | StartGameAction 
                     | PlaceTowerAction
-                    | ShootCellAction;
+                    | ShootCellAction
+                    | AIMoveAction;
