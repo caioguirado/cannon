@@ -53,7 +53,7 @@ export const Cell = (props: CellProps) => {
             if (!item.id){
                 placeTower(item, props.id);
                 deSelectCell();
-                AI();
+                // AI();
                 return
             }
             
@@ -66,7 +66,7 @@ export const Cell = (props: CellProps) => {
                 deSelectCell();
             }
 
-            AI();
+            // AI();
         }
     });
 

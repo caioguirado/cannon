@@ -52,15 +52,31 @@ func evaluate(boardConfig []string) int {
 		}
 	}
 
-	featureValues := []int{whitePawns, blackPawns, whiteCannons, blackCannons}
+	nextBlackStates := getNextStates(state{Board: boardConfig, TurnType: "p2"})
+	nextWhiteStates := getNextStates(state{Board: boardConfig, TurnType: "p1"})
+	numMovesBlack := len(nextBlackStates)
+	numMovesWhite := len(nextWhiteStates)
 
-	score := 0
-	for _, fv := range featureValues {
-		score += fv
+	blackCaptureMoves := 0
+	for _, s := range nextBlackStates {
+		if s.move.MoveType == "capture" {
+			blackCaptureMoves += 1
+		}
 	}
 
-	score = whitePawns - blackPawns
-	// fmt.Println(score)
+	whiteCaptureMoves := 0
+	for _, s := range nextWhiteStates {
+		if s.move.MoveType == "capture" {
+			whiteCaptureMoves += 1
+		}
+	}
+
+	pawnDifference := blackPawns - whitePawns
+	moveDifference := numMovesBlack - numMovesWhite
+	cannonDifference := blackCannons - whiteCannons
+	captureMoveDifference := blackCaptureMoves - whiteCaptureMoves
+
+	score := pawnDifference + moveDifference + cannonDifference + captureMoveDifference
 	return score
 }
 
@@ -229,10 +245,12 @@ func getRetreatCells(item int, board []string) []int {
 		var mappedFreeMapping []bool
 
 		for _, cell := range stepBackCells {
-			if board[cell] != "none" || cell%10 == 0 || cell%9 == 0 {
-				mappedFreeMapping = append(mappedFreeMapping, false)
-			} else {
-				mappedFreeMapping = append(mappedFreeMapping, true)
+			if cell >= 0 && cell < 100 {
+				if board[cell] != "none" || cell%10 == 0 || cell%9 == 0 {
+					mappedFreeMapping = append(mappedFreeMapping, false)
+				} else {
+					mappedFreeMapping = append(mappedFreeMapping, true)
+				}
 			}
 		}
 
@@ -422,7 +440,11 @@ func getCannonMoveCells(item int, board []string) []int {
 		if (newMinusOfst1 >= 0 && newMinusOfst1 < 100) && (newMinusOfst2 >= 0 && newMinusOfst2 < 100) {
 			if board[newMinusOfst1] == board[item] && board[newMinusOfst2] == board[item] {
 				if (newMinusOfst3 >= 0 && newMinusOfst3 < 100) && board[newMinusOfst3] == "none" {
-					allowedMoves = append(allowedMoves, fromItem+ofst*-3)
+					signalCheck := (fromItem % 10) - (newMinusOfst1 % 10)
+					moveSignal := (fromItem % 10) - (newMinusOfst3 % 10)
+					if signalCheck*moveSignal > 0 {
+						allowedMoves = append(allowedMoves, newMinusOfst3)
+					}
 				}
 			}
 		}
@@ -430,7 +452,11 @@ func getCannonMoveCells(item int, board []string) []int {
 		if (newPlusOfst1 >= 0 && newPlusOfst1 < 100) && (newPlusOfst2 >= 0 && newPlusOfst2 < 100) {
 			if board[newPlusOfst1] == board[item] && board[newPlusOfst2] == board[item] {
 				if (newPlusOfst3 >= 0 && newPlusOfst3 < 100) && board[newPlusOfst3] == "none" {
-					allowedMoves = append(allowedMoves, fromItem+ofst*3)
+					signalCheck := (fromItem % 10) - (newPlusOfst1 % 10)
+					moveSignal := (fromItem % 10) - (newPlusOfst3 % 10)
+					if signalCheck*moveSignal > 0 {
+						allowedMoves = append(allowedMoves, newPlusOfst3)
+					}
 				}
 			}
 		}
@@ -529,12 +555,16 @@ type stateTransition struct {
 	toState   state
 }
 
-func getMoveType(toPosition int, possibleShots []int, turnType string) string {
-
+func getMoveType(toPosition int, possibleShots []int, turnType string, board []string) string {
+	opponent := map[string]string{"p1": "b",
+		"p2": "w",
+	}
 	if strings.Contains(turnType, "placement") {
 		return "placement"
 	} else if isIn(toPosition, possibleShots) {
 		return "shot"
+	} else if strings.Contains(board[toPosition], opponent[turnType]) {
+		return "capture"
 	} else {
 		return "move"
 	}
@@ -586,7 +616,7 @@ func getNextStates(s state) []stateTransition {
 				nextTurnType = nextTurnTypeMap[s.TurnType]
 			}
 			nextState := state{Board: newBoard, TurnType: nextTurnType}
-			moveType := getMoveType(toPosition, possibleShots, s.TurnType)
+			moveType := getMoveType(toPosition, possibleShots, s.TurnType, s.Board)
 			move := move{FromPosition: i, ToPosition: toPosition, MoveType: moveType}
 			nextStateTransition := stateTransition{fromState: s,
 				move:    move,
@@ -642,6 +672,7 @@ type searchResult struct {
 }
 
 func alphaBeta(s state, alpha int, beta int, depth int, tt *map[int]ttEntry) searchResult {
+	fmt.Println(s.TurnType, depth, s.TurnType == "terminal" || depth == 0, alpha, beta)
 	stateCount += 1
 	olda := alpha
 	// fmt.Println("Depth: ", depth, *tt)
@@ -672,18 +703,22 @@ func alphaBeta(s state, alpha int, beta int, depth int, tt *map[int]ttEntry) sea
 	}
 
 	if s.TurnType == "terminal" || depth == 0 {
-		// return evaluate(s.Board)
-		fmt.Println(s.TurnType)
-		return searchResult{value: evaluate(s.Board), bestMove: move{}}
+		evaluatedScore := evaluate(s.Board)
+		fmt.Println("Terminal or depth 0: ", s.TurnType, depth, evaluatedScore)
+		return searchResult{value: evaluatedScore, bestMove: move{}}
 	}
 
 	stateTransitions := getNextStates(s)
-	orderedStateTransitions := moveOrder(stateTransitions)
+	// orderedStateTransitions := moveOrder(stateTransitions)
 
 	score := int(-math.Inf(-1))
 	var bestMove move
-	for _, stateTransition := range orderedStateTransitions {
+	fmt.Println("State transitions: ", len(stateTransitions))
+	for i, stateTransition := range stateTransitions {
+		fmt.Println("Calling transition: ", i)
 		value := -alphaBeta(stateTransition.toState, -beta, -alpha, depth-1, tt).value
+		fmt.Println("Depth: ", depth, "Move: ", stateTransition.move.FromPosition, "->", stateTransition.move.ToPosition, value)
+		fmt.Println(tt)
 		if value > score {
 			score = value
 			bestMove = stateTransition.move
@@ -692,6 +727,7 @@ func alphaBeta(s state, alpha int, beta int, depth int, tt *map[int]ttEntry) sea
 			alpha = score
 		}
 		if score > beta {
+			fmt.Println("Hit Break!!!", score, beta)
 			break
 		}
 	}
@@ -726,13 +762,13 @@ func chooseMove(s state, maxDepth int) move {
 		return stateTransitions[randomInt].move
 	}
 
-	maxTime := 5 // 15s (milliseconds)
+	maxTime := 5000 // 15s (milliseconds)
 	startTime := time.Now().UnixMilli()
 	outOfTime := false
 	tt := map[int]ttEntry{}
 	bestMove := move{}
 	for i := 0; i <= maxDepth && !outOfTime; i += 1 {
-		bestMove = alphaBeta(s, int(math.Inf(-1)), int(math.Inf(1)), i, &tt).bestMove
+		bestMove = alphaBeta(s, -999999, 999999, i, &tt).bestMove
 		outOfTime = int(time.Now().UnixMilli()-startTime) > maxTime
 		if outOfTime {
 			fmt.Println("Out of Time: depth = ", i, stateCount)
@@ -755,7 +791,7 @@ func sendMove(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		move := chooseMove(receivedState, 20)
+		move := chooseMove(receivedState, 2)
 		// move := move{FromPosition: 31, ToPosition: 41, MoveType: "move"}
 		json.NewEncoder(w).Encode(move)
 		fmt.Println("Endpoint Hit: sendMove")

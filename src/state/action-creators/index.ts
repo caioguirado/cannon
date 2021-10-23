@@ -68,12 +68,12 @@ export const AIMakeMove = (board: any, turnType: any) => {
             .then(r => {
                 const move : any = r.data;
                 console.log('AI Answered move: ', move)
-                if (move['moveType'] == 'move'){
+                if (move['moveType'] == 'move' || move['moveType'] == 'capture'){
                     dispatch(moveCell(move['fromPosition'].toString(), 
                                         move['toPosition'].toString(), 
                                         ""));
                 } else if (move['moveType'] == 'placement') {
-                    dispatch(placeTower('tb', move['toPosition']));
+                    dispatch(placeTower({value: 'b'}, move['toPosition'].toString()));
                 } else if (move['moveType'] == 'shot'){
                     dispatch(shootCell(move['toPosition']));
                 } else {

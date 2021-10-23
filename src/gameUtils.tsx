@@ -281,7 +281,10 @@ export const getCannonMoveCells = (item: BoardCell, boardConfig: BoardCell[]) =>
                 && 
             getBoardValue(fromItem + ofst * -2, boardConfig) === item.value) {
 
-                const movePosition = boardConfig[fromItem + ofst * -3].value === 'none' ? [fromItem + ofst * -3] : [];
+                let movePosition = boardConfig[fromItem + ofst * -3].value === 'none' ? [fromItem + ofst * -3] : [];
+                const signalCheck = (fromItem % 10) - ((fromItem + ofst * -1)%10);
+                const moveSignal = (fromItem % 10) - ((fromItem + ofst * -3)%10);
+                movePosition = (signalCheck * moveSignal) > 0 ? movePosition : [];
                 allowedMoves.push(...movePosition);
         } 
 
@@ -291,7 +294,11 @@ export const getCannonMoveCells = (item: BoardCell, boardConfig: BoardCell[]) =>
                 && 
             getBoardValue(fromItem + ofst * 2, boardConfig) === item.value){
 
-                const movePosition = boardConfig[fromItem + ofst * 3].value === 'none' ? [fromItem + ofst * 3] : [];
+                let movePosition = boardConfig[fromItem + ofst * 3].value === 'none' ? [fromItem + ofst * 3] : [];
+                const signalCheck = (fromItem % 10) - ((fromItem + ofst * 1)%10);
+                const moveSignal = (fromItem % 10) - ((fromItem + ofst * 3)%10);
+                console.log(signalCheck, moveSignal);
+                movePosition = (signalCheck * moveSignal) > 0? movePosition : [];
                 allowedMoves.push(...movePosition);
 
         }

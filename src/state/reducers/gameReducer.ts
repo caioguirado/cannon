@@ -100,6 +100,12 @@ const reducer = produce(
                     state.board.boardConfig[fromIndex].value = 'none';
                     return
                 }
+                const tWhitePieces = state.board.boardConfig.filter(p => p.value === 'w');
+                const tBlackPieces = state.board.boardConfig.filter(p => p.value === 'b');
+                if(tWhitePieces.length === 0 || tBlackPieces.length === 0){
+                    state.turnType = TurnType.TERMINAL
+                    return
+                }
 
                 state.board.boardConfig[toIndex].value = state.board.boardConfig[fromIndex].value;
                 state.board.boardConfig[fromIndex].value = 'none';
@@ -141,6 +147,12 @@ const reducer = produce(
                 if (state.board.boardConfig[toCell].value[0] === 't'){
                     state.turnType = TurnType.TERMINAL
                     state.board.boardConfig[toCell].value = 'none';
+                    return
+                }
+                const totalWhitePieces = state.board.boardConfig.filter(p => p.value === 'w');
+                const totalBlackPieces = state.board.boardConfig.filter(p => p.value === 'b');
+                if(totalWhitePieces.length === 0 || totalBlackPieces.length === 0){
+                    state.turnType = TurnType.TERMINAL
                     return
                 }
 
