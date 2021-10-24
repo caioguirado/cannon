@@ -153,8 +153,8 @@ $boardSize: 35vw;
   position: relative;
   border-style: solid;
   border-width: 1px;
-  border-color: blue;
-  background-color: rgb(0, 255, 0, 0.3) !important;
+  border-color: transparent;
+  background-color: rgb(0, 255, 0, 0) !important;
 
   & > div {
     height: 100%;

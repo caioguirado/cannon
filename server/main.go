@@ -628,22 +628,29 @@ func getNextStates(s state) []stateTransition {
 	return nextStates
 }
 
-func zobristHash(board []string) int {
+func zobristHash(s state) int {
 	n := 1000 // rand range
 	cells := 100
 	// positions vs. piecetype
 	// rows = tw, tb, w, b
-	table := [][]int{rand.Perm(n)[:cells],
+	tablep1 := [][]int{rand.Perm(n)[:cells],
+		rand.Perm(n)[:cells],
+		rand.Perm(n)[:cells],
+		rand.Perm(n)[:cells]}
+	tablep2 := [][]int{rand.Perm(n)[:cells],
 		rand.Perm(n)[:cells],
 		rand.Perm(n)[:cells],
 		rand.Perm(n)[:cells]}
 
+	table := [][][]int{tablep1, tablep2}
+
 	piece2row := map[string]int{"tw": 0, "tb": 1, "w": 2, "b": 3}
+	p2table := map[string]int{"p1": 0, "p2": 1}
 
 	hash := 0
-	for i, piece := range board {
+	for i, piece := range s.Board {
 		if piece != "none" {
-			hash ^= table[piece2row[piece]][i]
+			hash ^= table[p2table[s.TurnType]][piece2row[piece]][i]
 		}
 	}
 	return hash
@@ -667,7 +674,7 @@ func moveOrder(s state, transitions []stateTransition, tt *map[int]ttEntry) []st
 	captureMoves := []stateTransition{}
 	ttTransition := []mOrder{}
 	for _, sTransition := range transitions {
-		stateHash := zobristHash(sTransition.toState.Board)
+		stateHash := zobristHash(sTransition.toState)
 		if val, ok := (*tt)[stateHash]; ok {
 			value := val.value
 			ttTransition = append(ttTransition, mOrder{st: sTransition, value: value})
@@ -699,28 +706,42 @@ type searchResult struct {
 	bestMove move
 }
 
-func alphaBeta(s state, alpha int, beta int, depth int, tt *map[int]ttEntry, startTime int64, maxTime int) searchResult {
+func alphaBeta(s state,
+	alpha int,
+	beta int,
+	depth int,
+	tt *map[int]ttEntry,
+	startTime int64,
+	maxTime int,
+	maxDepth int,
+	fromState state,
+) searchResult {
+
+	var evaluatedScore int
 	outOfTime := int(time.Now().UnixMilli()-startTime) > maxTime
 	if outOfTime {
-		evaluatedScore := evaluate(s.Board)
+		if fromState.TurnType == "p2" {
+			evaluatedScore = -evaluate(s.Board)
+		} else {
+			evaluatedScore = evaluate(s.Board)
+		}
 		return searchResult{value: evaluatedScore, bestMove: move{}}
 	}
+
 	stateCount += 1
 	olda := alpha
 
 	// check value in tt
 	var n ttEntry
-	stateHash := zobristHash(s.Board)
+	stateHash := zobristHash(s)
 	if val, ok := (*tt)[stateHash]; ok {
 		n = val
-		// fmt.Println("FOUND IN TT")
 	} else {
-		n = ttEntry{depth: -1, flag: "", value: int(math.Inf(-1)), bestMove: move{}}
+		n = ttEntry{depth: -1, flag: "", value: -9999999, bestMove: move{}}
 	}
 
 	if n.depth >= depth {
 		if n.flag == "exact" {
-			// return n.value
 			return searchResult{value: n.value, bestMove: n.bestMove}
 		} else if n.flag == "lower_bound" {
 			alpha = int(math.Max(float64(alpha), float64(n.value)))
@@ -729,24 +750,26 @@ func alphaBeta(s state, alpha int, beta int, depth int, tt *map[int]ttEntry, sta
 		}
 
 		if alpha >= beta {
-			// return n.value
 			return searchResult{value: n.value, bestMove: n.bestMove}
 		}
 	}
 
 	if s.TurnType == "terminal" || depth == 0 {
-		evaluatedScore := evaluate(s.Board)
-		// fmt.Println("Terminal or depth 0: ", s.TurnType, depth, evaluatedScore)
+		if fromState.TurnType == "p2" {
+			evaluatedScore = -evaluate(s.Board)
+		} else {
+			evaluatedScore = evaluate(s.Board)
+		}
 		return searchResult{value: evaluatedScore, bestMove: move{}}
 	}
 
 	stateTransitions := getNextStates(s)
 	orderedStateTransitions := moveOrder(s, stateTransitions, tt)
 
-	score := int(-math.Inf(-1))
+	score := -999999999
 	var bestMove move
 	for _, stateTransition := range orderedStateTransitions {
-		value := -alphaBeta(stateTransition.toState, -beta, -alpha, depth-1, tt, startTime, maxTime).value
+		value := -alphaBeta(stateTransition.toState, -beta, -alpha, depth-1, tt, startTime, maxTime, maxDepth, stateTransition.fromState).value
 		if value > score {
 			score = value
 			bestMove = stateTransition.move
@@ -768,7 +791,7 @@ func alphaBeta(s state, alpha int, beta int, depth int, tt *map[int]ttEntry, sta
 		flag = "exact"
 	}
 
-	newTTEntry := ttEntry{depth: -1,
+	newTTEntry := ttEntry{depth: depth,
 		flag:     flag,
 		value:    score,
 		bestMove: bestMove}
@@ -794,9 +817,11 @@ func chooseMove(s state, maxDepth int) move {
 	outOfTime := false
 	tt := map[int]ttEntry{}
 	bestMove := move{}
+	ab := searchResult{}
 	for i := 0; i <= maxDepth && !outOfTime; i += 1 {
-		fmt.Println("IDDFS depth: ", i)
-		bestMove = alphaBeta(s, -999999, 999999, i, &tt, startTime, maxTime).bestMove
+		fmt.Println("IDDFS depth: ", i, ab)
+		ab = alphaBeta(s, -999999, 999999, i, &tt, startTime, maxTime, maxDepth, state{})
+		bestMove = ab.bestMove
 		outOfTime = int(time.Now().UnixMilli()-startTime) > maxTime
 		if outOfTime {
 			fmt.Println("Out of Time: depth = ", i, stateCount)
@@ -819,7 +844,7 @@ func sendMove(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		move := chooseMove(receivedState, 6)
+		move := chooseMove(receivedState, 4)
 		// move := move{FromPosition: 31, ToPosition: 41, MoveType: "move"}
 		json.NewEncoder(w).Encode(move)
 		fmt.Println("Endpoint Hit: sendMove")
