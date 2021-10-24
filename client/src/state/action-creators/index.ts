@@ -61,11 +61,11 @@ export const AIMakeMove = (board: any, turnType: any) => {
     return (dispatch: any) => {
         // const state = store.getState();
         // console.log(state);
-        axios.post('http://localhost:10000/move', {
+        axios.post('http://localhost:3050/api/move', {
             "board": board,
             "turnType": turnType
         })
-            .then(r => {
+            .then((r:any) => {
                 const move : any = r.data;
                 console.log('AI Answered move: ', move)
                 if (move['moveType'] == 'move' || move['moveType'] == 'capture'){
@@ -79,7 +79,7 @@ export const AIMakeMove = (board: any, turnType: any) => {
                 } else {
                     return
                 }
-            }).catch(err => {
+            }).catch((err:any) => {
                 const errorMessage = err.message;
                 console.log(errorMessage);
             })
