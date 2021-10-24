@@ -14,7 +14,7 @@ To install, you need to have docker installed in your machine.
 Clone the repo, if necessary:
 `https://github.com/caioguirado/cannon.git`
 
-Build the docker image:
+In the terminal, go to the project folder and build the docker image:
 `docker-compose up --build`
 
 Then, open your browser and connect to:
