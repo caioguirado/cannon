@@ -442,7 +442,7 @@ func getCannonMoveCells(item int, board []string) []int {
 				if (newMinusOfst3 >= 0 && newMinusOfst3 < 100) && board[newMinusOfst3] == "none" {
 					signalCheck := (fromItem % 10) - (newMinusOfst1 % 10)
 					moveSignal := (fromItem % 10) - (newMinusOfst3 % 10)
-					if signalCheck*moveSignal > 0 {
+					if signalCheck*moveSignal >= 0 {
 						allowedMoves = append(allowedMoves, newMinusOfst3)
 					}
 				}
@@ -454,7 +454,7 @@ func getCannonMoveCells(item int, board []string) []int {
 				if (newPlusOfst3 >= 0 && newPlusOfst3 < 100) && board[newPlusOfst3] == "none" {
 					signalCheck := (fromItem % 10) - (newPlusOfst1 % 10)
 					moveSignal := (fromItem % 10) - (newPlusOfst3 % 10)
-					if signalCheck*moveSignal > 0 {
+					if signalCheck*moveSignal >= 0 {
 						allowedMoves = append(allowedMoves, newPlusOfst3)
 					}
 				}
@@ -656,14 +656,42 @@ type ttEntry struct {
 	bestMove move
 }
 
-func moveOrder(transitions []stateTransition) []stateTransition {
+type mOrder struct {
+	st    stateTransition
+	value int
+}
 
-	// insert other strategies. Capture moves first, etc
-	sort.SliceStable(transitions, func(i, j int) bool {
-		return evaluate(transitions[i].toState.Board) < evaluate(transitions[j].toState.Board)
+func moveOrder(s state, transitions []stateTransition, tt *map[int]ttEntry) []stateTransition {
+
+	otherMoves := []stateTransition{}
+	captureMoves := []stateTransition{}
+	ttTransition := []mOrder{}
+	for _, sTransition := range transitions {
+		stateHash := zobristHash(sTransition.toState.Board)
+		if val, ok := (*tt)[stateHash]; ok {
+			value := val.value
+			ttTransition = append(ttTransition, mOrder{st: sTransition, value: value})
+		} else if sTransition.move.MoveType == "capture" {
+			captureMoves = append(captureMoves, sTransition)
+		} else {
+			otherMoves = append(otherMoves, sTransition)
+		}
+	}
+
+	sort.SliceStable(ttTransition, func(i, j int) bool {
+		return ttTransition[i].value > ttTransition[j].value
 	})
 
-	return transitions
+	sortedTTsts := []stateTransition{}
+	for _, ttt := range ttTransition {
+		sortedTTsts = append(sortedTTsts, ttt.st)
+	}
+
+	sortedTransitions := append([]stateTransition{}, sortedTTsts...)
+	sortedTransitions = append(sortedTransitions, captureMoves...)
+	sortedTransitions = append(sortedTransitions, otherMoves...)
+
+	return sortedTransitions
 }
 
 type searchResult struct {
@@ -671,11 +699,15 @@ type searchResult struct {
 	bestMove move
 }
 
-func alphaBeta(s state, alpha int, beta int, depth int, tt *map[int]ttEntry) searchResult {
-	fmt.Println(s.TurnType, depth, s.TurnType == "terminal" || depth == 0, alpha, beta)
+func alphaBeta(s state, alpha int, beta int, depth int, tt *map[int]ttEntry, startTime int64, maxTime int) searchResult {
+	outOfTime := int(time.Now().UnixMilli()-startTime) > maxTime
+	if outOfTime {
+		evaluatedScore := evaluate(s.Board)
+		return searchResult{value: evaluatedScore, bestMove: move{}}
+	}
 	stateCount += 1
 	olda := alpha
-	// fmt.Println("Depth: ", depth, *tt)
+
 	// check value in tt
 	var n ttEntry
 	stateHash := zobristHash(s.Board)
@@ -704,21 +736,17 @@ func alphaBeta(s state, alpha int, beta int, depth int, tt *map[int]ttEntry) sea
 
 	if s.TurnType == "terminal" || depth == 0 {
 		evaluatedScore := evaluate(s.Board)
-		fmt.Println("Terminal or depth 0: ", s.TurnType, depth, evaluatedScore)
+		// fmt.Println("Terminal or depth 0: ", s.TurnType, depth, evaluatedScore)
 		return searchResult{value: evaluatedScore, bestMove: move{}}
 	}
 
 	stateTransitions := getNextStates(s)
-	// orderedStateTransitions := moveOrder(stateTransitions)
+	orderedStateTransitions := moveOrder(s, stateTransitions, tt)
 
 	score := int(-math.Inf(-1))
 	var bestMove move
-	fmt.Println("State transitions: ", len(stateTransitions))
-	for i, stateTransition := range stateTransitions {
-		fmt.Println("Calling transition: ", i)
-		value := -alphaBeta(stateTransition.toState, -beta, -alpha, depth-1, tt).value
-		fmt.Println("Depth: ", depth, "Move: ", stateTransition.move.FromPosition, "->", stateTransition.move.ToPosition, value)
-		fmt.Println(tt)
+	for _, stateTransition := range orderedStateTransitions {
+		value := -alphaBeta(stateTransition.toState, -beta, -alpha, depth-1, tt, startTime, maxTime).value
 		if value > score {
 			score = value
 			bestMove = stateTransition.move
@@ -727,7 +755,6 @@ func alphaBeta(s state, alpha int, beta int, depth int, tt *map[int]ttEntry) sea
 			alpha = score
 		}
 		if score > beta {
-			fmt.Println("Hit Break!!!", score, beta)
 			break
 		}
 	}
@@ -757,18 +784,19 @@ func chooseMove(s state, maxDepth int) move {
 	if strings.Contains(s.TurnType, "placement") {
 		stateTransitions := getNextStates(s)
 		s := rand.NewSource(time.Now().Unix())
-		r := rand.New(s) // initialize local pseudorandom generator
+		r := rand.New(s)
 		randomInt := r.Intn(len(stateTransitions))
 		return stateTransitions[randomInt].move
 	}
 
-	maxTime := 5000 // 15s (milliseconds)
+	maxTime := 15000 // milliseconds
 	startTime := time.Now().UnixMilli()
 	outOfTime := false
 	tt := map[int]ttEntry{}
 	bestMove := move{}
 	for i := 0; i <= maxDepth && !outOfTime; i += 1 {
-		bestMove = alphaBeta(s, -999999, 999999, i, &tt).bestMove
+		fmt.Println("IDDFS depth: ", i)
+		bestMove = alphaBeta(s, -999999, 999999, i, &tt, startTime, maxTime).bestMove
 		outOfTime = int(time.Now().UnixMilli()-startTime) > maxTime
 		if outOfTime {
 			fmt.Println("Out of Time: depth = ", i, stateCount)
@@ -791,7 +819,7 @@ func sendMove(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		move := chooseMove(receivedState, 2)
+		move := chooseMove(receivedState, 6)
 		// move := move{FromPosition: 31, ToPosition: 41, MoveType: "move"}
 		json.NewEncoder(w).Encode(move)
 		fmt.Println("Endpoint Hit: sendMove")
